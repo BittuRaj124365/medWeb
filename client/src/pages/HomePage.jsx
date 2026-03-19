@@ -140,6 +140,25 @@ const BlogModal = ({ isOpen, onClose }) => {
   );
 };
 
+const faqs = [
+  {
+    q: "Are the medicines genuine?",
+    a: "Yes, every medicine listed is verified for authenticity and sourced from licensed pharmaceutical distributors."
+  },
+  {
+    q: "How often is the stock updated?",
+    a: "Our inventory is updated in real-time. What you see is exactly what's available in our physical warehouse."
+  },
+  {
+    q: "Do you deliver to my location?",
+    a: "We currently offer express delivery within a 15km radius of our main store in New Delhi."
+  },
+  {
+    q: "Can I get a pharmacist consultation?",
+    a: "Absolutely! Our chief pharmacist, Dr. Ananya Sharma, and her team are available for consultations during service hours."
+  }
+];
+
 const HomePage = () => {
   const navigate = useNavigate();
   const [searchTerm, setSearchTerm] = useState('');
