@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 # MedWeb 2.0 - Medicine Inventory Viewer
 
 A full-stack read-only storefront for a single medicine shop where users can browse, search, and check stock availability of medicines. Includes a protected Admin portal for managing inventory.
@@ -90,3 +91,7 @@ To manage the inventory, go to the Admin Login page:
 
 ## 🔮 Future-Proofing
 The application uses **React Query** and **Tailwind CSS**. State logic and styles can easily be ported to React Native and NativeWind with minimal refactoring. State management relies entirely on server state rather than complex frontend-only Redux stores.
+=======
+# medWeb
+A full-stack Medicine Inventory Viewer web application built for individual pharmacy shops.  Customers can browse, search, and check real-time stock availability of medicines
+>>>>>>> 741d0b0047ad558adb9b3fafe4478d25152b6559
