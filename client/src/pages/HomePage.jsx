@@ -4,7 +4,8 @@ import { useNavigate, Link } from 'react-router-dom';
 import {
   Search, ArrowRight, Activity, Pill, HeartPulse, ShieldCheck,
   Clock, MapPin, Phone, Mail, Star, Users, Award, TrendingUp, Package, Zap,
-  CheckCircle2, ChevronRight, HelpCircle, BookOpen, Stethoscope, X, MessageCircle
+  CheckCircle2, ChevronRight, HelpCircle, BookOpen, Stethoscope, X, MessageCircle,
+  Plus, Minus
 } from 'lucide-react';
 import apiClient from '../api/apiClient';
 import MedicineCard from '../components/MedicineCard';
@@ -163,6 +164,7 @@ const HomePage = () => {
   const navigate = useNavigate();
   const [searchTerm, setSearchTerm] = useState('');
   const [isBlogOpen, setIsBlogOpen] = useState(false);
+  const [openFaq, setOpenFaq] = useState(null);
 
   const { data, isLoading } = useQuery({
     queryKey: ['medicines', { limit: 8 }],
@@ -412,7 +414,7 @@ const HomePage = () => {
               </a>
             </div>
 
-            <div className="min-h-[500px] lg:min-h-full rounded-[64px] overflow-hidden border-8 border-slate-50 shadow-2xl">
+            <div className="min-h-[500px] lg:min-h-full rounded-[64px] overflow-hidden border-8 border-slate-50 shadow-2xl relative z-0">
               <StoreMap />
             </div>
           </div>
@@ -426,13 +428,27 @@ const HomePage = () => {
               <h2 className="text-4xl font-black text-slate-900 mb-4">Quick Answers</h2>
               <p className="text-slate-400 font-medium">Frequently asked questions about our inventory.</p>
            </div>
-           <div className="space-y-6">
+           <div className="space-y-4">
               {faqs.map((f, i) => (
-                <div key={i} className="p-8 rounded-[32px] bg-slate-50 hover:bg-slate-100 transition-colors group">
-                   <h4 className="flex items-center gap-4 font-bold text-slate-900 text-lg mb-3">
-                      <div className="w-2 h-2 rounded-full bg-primary" /> {f.q}
-                   </h4>
-                   <p className="text-slate-500 leading-relaxed font-medium pl-6">{f.a}</p>
+                <div 
+                  key={i} 
+                  className={`p-6 sm:p-8 rounded-[32px] transition-all duration-300 cursor-pointer group border ${openFaq === i ? 'bg-white border-indigo-100 shadow-xl shadow-indigo-500/5' : 'bg-slate-50 border-transparent hover:bg-slate-100'}`}
+                  onClick={() => setOpenFaq(openFaq === i ? null : i)}
+                >
+                   <div className="flex items-center justify-between gap-4">
+                      <h4 className="flex items-center gap-4 font-bold text-slate-900 text-lg">
+                        <div className={`w-2 h-2 rounded-full transition-colors ${openFaq === i ? 'bg-indigo-600' : 'bg-slate-300'}`} /> 
+                        {f.q}
+                      </h4>
+                      <div className={`p-2 rounded-full transition-colors ${openFaq === i ? 'bg-indigo-600 text-white' : 'bg-white text-slate-400 border border-slate-100'}`}>
+                        {openFaq === i ? <Minus className="w-4 h-4" /> : <Plus className="w-4 h-4" />}
+                      </div>
+                   </div>
+                   <div className={`overflow-hidden transition-all duration-500 ease-in-out ${openFaq === i ? 'max-h-40 mt-5 opacity-100' : 'max-h-0 opacity-0'}`}>
+                      <p className="text-slate-500 leading-relaxed font-medium pl-6 border-l-2 border-indigo-50">
+                        {f.a}
+                      </p>
+                   </div>
                 </div>
               ))}
            </div>
