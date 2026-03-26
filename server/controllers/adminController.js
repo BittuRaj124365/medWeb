@@ -1,5 +1,8 @@
 import Admin from '../models/Admin.js';
 import Medicine from '../models/Medicine.js';
+import Supplier from '../models/Supplier.js';
+import AdminActivityLog from '../models/AdminActivityLog.js';
+import Feedback from '../models/Feedback.js';
 import jwt from 'jsonwebtoken';
 
 const generateToken = (id) => {
@@ -87,6 +90,173 @@ export const getDashboardStats = async (req, res) => {
       outOfStock,
       lowStock
     });
+  } catch (error) {
+    res.status(500).json({ message: 'Server Error', error: error.message });
+  }
+};
+
+// @desc    Get all suppliers
+export const getSuppliers = async (req, res) => {
+  try {
+    const suppliers = await Supplier.find().sort('-createdAt');
+    res.json(suppliers);
+  } catch (error) {
+    res.status(500).json({ message: 'Server Error', error: error.message });
+  }
+};
+
+export const createSupplier = async (req, res) => {
+  try {
+    const supplier = await Supplier.create(req.body);
+    res.status(201).json(supplier);
+  } catch (error) {
+    res.status(400).json({ message: 'Invalid data', error: error.message });
+  }
+};
+
+export const updateSupplier = async (req, res) => {
+  try {
+    const supplier = await Supplier.findByIdAndUpdate(req.params.id, req.body, { new: true });
+    if(supplier) res.json(supplier);
+    else res.status(404).json({ message: 'Supplier not found' });
+  } catch (error) {
+    res.status(400).json({ message: 'Invalid data', error: error.message });
+  }
+};
+
+export const deleteSupplier = async (req, res) => {
+  try {
+    const supplier = await Supplier.findByIdAndDelete(req.params.id);
+    if(supplier) res.json({ message: 'Supplier removed' });
+    else res.status(404).json({ message: 'Supplier not found' });
+  } catch (error) {
+    res.status(500).json({ message: 'Server Error', error: error.message });
+  }
+};
+
+// @desc Get Admin Logs
+export const getAdminLogs = async (req, res) => {
+  try {
+    const logs = await AdminActivityLog.find().sort('-timestamp').limit(50);
+    res.json(logs);
+  } catch (error) {
+    res.status(500).json({ message: 'Server Error', error: error.message });
+  }
+};
+
+// @desc Get Reports
+export const getReports = async (req, res) => {
+  try {
+    const currentDate = new Date();
+    const ninetyDaysFromNow = new Date();
+    ninetyDaysFromNow.setDate(currentDate.getDate() + 90);
+
+    const totalMedicines = await Medicine.countDocuments();
+    const outOfStock = await Medicine.countDocuments({ stockQuantity: 0 });
+    
+    // Low stock where stock > 0 but <= minStockThreshold
+    const lowStockMedicines = await Medicine.find({
+      $expr: {
+        $and: [
+          { $gt: ["$stockQuantity", 0] },
+          { $lt: ["$stockQuantity", "$minStockThreshold"] }
+        ]
+      }
+    });
+
+    const mostSearched = await Medicine.find().sort({ searchCount: -1 }).limit(10);
+    const mostViewed = await Medicine.find().sort({ viewCount: -1 }).limit(10);
+
+    const expiredOrNearExpiry = await Medicine.find({
+      expiryDate: { $lte: ninetyDaysFromNow }
+    }).sort({ expiryDate: 1 });
+
+    res.json({
+      stockReport: { totalMedicines, lowStockCount: lowStockMedicines.length, outOfStockCount: outOfStock },
+      lowStock: lowStockMedicines,
+      mostSearched,
+      mostViewed,
+      expiredOrNearExpiry
+    });
+  } catch (error) {
+    res.status(500).json({ message: 'Server Error', error: error.message });
+  }
+};
+
+// @desc Get all feedbacks
+export const getFeedbacks = async (req, res) => {
+  try {
+    const filter = {};
+    if (req.query.medicineId) filter.medicine = req.query.medicineId;
+    if (req.query.rating) filter.rating = req.query.rating;
+    if (req.query.approved !== undefined) filter.approved = req.query.approved === 'true';
+
+    const feedbacks = await Feedback.find(filter).populate('medicine', 'name').sort('-dateSubmitted');
+    res.json(feedbacks);
+  } catch (error) {
+    res.status(500).json({ message: 'Server Error', error: error.message });
+  }
+};
+
+export const updateFeedbackStatus = async (req, res) => {
+  try {
+    const feedback = await Feedback.findById(req.params.id);
+    if(feedback) {
+      if(req.body.approved !== undefined) {
+        feedback.approved = req.body.approved;
+        await feedback.save();
+
+        // Recalculate medicine rating
+        const medFeedbacks = await Feedback.find({ medicine: feedback.medicine, approved: true });
+        const med = await Medicine.findById(feedback.medicine);
+        if(med) {
+            med.totalRatingCount = medFeedbacks.length;
+            med.averageRating = medFeedbacks.length > 0 ? (medFeedbacks.reduce((acc, curr) => acc + curr.rating, 0) / medFeedbacks.length) : 0;
+            await med.save();
+        }
+
+        // Log
+        await AdminActivityLog.create({
+          actionType: req.body.approved ? 'APPROVE_FEEDBACK' : 'REJECT_FEEDBACK',
+          medicineName: med ? med.name : 'Unknown',
+          adminUsername: req.admin.username
+        });
+      }
+      res.json(feedback);
+    } else {
+      res.status(404).json({ message: 'Feedback not found' });
+    }
+  } catch (error) {
+    res.status(500).json({ message: 'Server Error', error: error.message });
+  }
+};
+
+export const deleteFeedback = async (req, res) => {
+  try {
+    const feedback = await Feedback.findById(req.params.id);
+    if(feedback) {
+      const medId = feedback.medicine;
+      await feedback.deleteOne();
+
+      // Recalculate medicine rating
+      const medFeedbacks = await Feedback.find({ medicine: medId, approved: true });
+      const med = await Medicine.findById(medId);
+      if(med) {
+          med.totalRatingCount = medFeedbacks.length;
+          med.averageRating = medFeedbacks.length > 0 ? (medFeedbacks.reduce((acc, curr) => acc + curr.rating, 0) / medFeedbacks.length) : 0;
+          await med.save();
+      }
+
+      await AdminActivityLog.create({
+        actionType: 'DELETE_FEEDBACK',
+        medicineName: med ? med.name : 'Unknown',
+        adminUsername: req.admin.username
+      });
+
+      res.json({ message: 'Feedback removed' });
+    } else {
+       res.status(404).json({ message: 'Feedback not found' });
+    }
   } catch (error) {
     res.status(500).json({ message: 'Server Error', error: error.message });
   }

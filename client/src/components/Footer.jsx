@@ -12,7 +12,7 @@ const Footer = () => {
             </p>
           </div>
           <div className="flex gap-4 text-sm text-gray-500">
-            <a href="/admin" className="hover:text-primary transition-colors">Admin Portal</a>
+            {/* <a href="/admin" className="hover:text-primary transition-colors">Admin Portal</a> */}
             <span className="hidden md:inline">&bull;</span>
             <a href="#" className="hover:text-primary transition-colors">Privacy Policy</a>
           </div>

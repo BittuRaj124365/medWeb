@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom';
-import { ShoppingCart } from 'lucide-react';
+import { ShoppingCart, Star } from 'lucide-react';
 import { useCart } from '../context/CartContext';
 
 const MedicineCard = ({ medicine }) => {
@@ -43,9 +43,16 @@ const MedicineCard = ({ medicine }) => {
         </div>
 
         <div className="p-5 flex flex-col flex-grow">
-          <span className="inline-block text-[9px] font-bold uppercase tracking-widest text-gray-400 mb-1">
-            {medicine.category}
-          </span>
+          <div className="flex justify-between items-start mb-1">
+            <span className="inline-block text-[9px] font-bold uppercase tracking-widest text-gray-400">
+              {medicine.category}
+            </span>
+            {medicine.rating?.count > 0 && (
+              <span className="flex items-center gap-0.5 text-[10px] font-bold text-amber-500">
+                <Star className="w-3 h-3 fill-amber-500" /> {medicine.rating.average.toFixed(1)}
+              </span>
+            )}
+          </div>
 
           <h3 className="font-semibold text-gray-800 text-base leading-tight line-clamp-2 mb-1 group-hover:text-indigo-700 transition-colors" title={medicine.name}>
             {medicine.name}

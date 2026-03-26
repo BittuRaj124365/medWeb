@@ -2,6 +2,9 @@ import mongoose from 'mongoose';
 import dotenv from 'dotenv';
 import Medicine from './models/Medicine.js';
 import Admin from './models/Admin.js';
+import Supplier from './models/Supplier.js';
+import AdminActivityLog from './models/AdminActivityLog.js';
+import Feedback from './models/Feedback.js';
 
 dotenv.config();
 
@@ -237,6 +240,9 @@ const seedDB = async () => {
 
     await Medicine.deleteMany();
     await Admin.deleteMany();
+    await Supplier.deleteMany();
+    await AdminActivityLog.deleteMany();
+    await Feedback.deleteMany();
 
     console.log('Data Cleared!');
 
@@ -249,8 +255,77 @@ const seedDB = async () => {
 
     console.log('Admin user created (username: admin, password: password123)');
 
-    await Medicine.insertMany(medicines);
-    console.log(`Inserted ${medicines.length} Medicines`);
+    // Create Suppliers
+    const suppliersData = [
+      { name: "PharmaCorp", contactNumber: "123-456-7890", email: "contact@pharmacorp.com", address: "123 Pharma St" },
+      { name: "BioHealth", contactNumber: "098-765-4321", email: "sales@biohealth.com", address: "456 Bio Ave" },
+      { name: "Relief Co", contactNumber: "555-123-4567", email: "info@reliefco.com", address: "789 Relief Blvd" },
+      { name: "NatureLife", contactNumber: "444-987-6543", email: "support@naturelife.com", address: "321 Nature Rd" },
+      { name: "DiabetesCare", contactNumber: "333-555-7777", email: "care@diabetescare.com", address: "654 Care Ln" },
+      { name: "VisionClear", contactNumber: "222-333-4444", email: "hello@visionclear.com", address: "987 Vision Way" },
+      { name: "SkinHealth", contactNumber: "111-222-3333", email: "dermatology@skinhealth.com", address: "147 Skin Dr" },
+      { name: "BreatheEasy", contactNumber: "888-999-0000", email: "air@breatheeasy.com", address: "258 Air Pl" },
+      { name: "AllergyRelief", contactNumber: "777-888-9999", email: "sneeze@allergyrelief.com", address: "369 Allergy St" },
+      { name: "StomachCare", contactNumber: "666-777-8888", email: "gut@stomachcare.com", address: "753 Gut Ave" },
+      { name: "LifeSaver", contactNumber: "444-333-2222", email: "save@lifesaver.com", address: "951 Save Blvd" },
+      { name: "DigestiveHealth", contactNumber: "555-666-7777", email: "digest@digestivehealth.com", address: "357 Digest Rd" },
+      { name: "VaxCorp", contactNumber: "999-000-1111", email: "vax@vaxcorp.com", address: "159 Vax Ln" }
+    ];
+    
+    const createdSuppliers = await Supplier.insertMany(suppliersData);
+    console.log(`Inserted ${createdSuppliers.length} Suppliers`);
+    
+    // Map supplier name to ObjectId
+    const supplierMap = createdSuppliers.reduce((acc, curr) => {
+       acc[curr.name] = curr._id;
+       return acc;
+    }, {});
+
+    const medicinesWithDetails = medicines.map(med => ({
+      ...med,
+      supplier: supplierMap[med.manufacturer],
+      purchasePrice: Number((med.price * 0.7).toFixed(2)),
+      batchNumber: `BATCH-${Math.floor(Math.random() * 10000)}`,
+      batches: [
+        { batchNumber: `BATCH-${Math.floor(Math.random() * 10000)}`, expiryDate: med.expiryDate || new Date("2026-12-31"), quantity: med.stockQuantity }
+      ],
+      restockHistory: [
+        { date: new Date(), quantityAdded: med.stockQuantity, restockedBy: 'admin' }
+      ]
+    }));
+
+    const insertedMedicines = await Medicine.insertMany(medicinesWithDetails);
+    console.log(`Inserted ${insertedMedicines.length} Medicines`);
+
+    // Create mock feedbacks
+    const mockFeedbacks = [];
+    for(let med of insertedMedicines) {
+      mockFeedbacks.push({
+        medicine: med._id,
+        userName: "John Doe",
+        userEmail: "john@example.com",
+        rating: 4,
+        message: "Good medicine, fast delivery.",
+        approved: true
+      });
+      mockFeedbacks.push({
+        medicine: med._id,
+        userName: "Jane Smith",
+        userEmail: "jane@example.com",
+        rating: 5,
+        message: "Very effective.",
+        approved: true
+      });
+      
+      med.totalRatingCount = 2;
+      med.averageRating = 4.5;
+      med.viewCount = Math.floor(Math.random() * 100);
+      med.searchCount = Math.floor(Math.random() * 50);
+      await med.save();
+    }
+
+    await Feedback.insertMany(mockFeedbacks);
+    console.log(`Inserted ${mockFeedbacks.length} Feedbacks`);
 
     console.log('Database Seeded Successfully!');
     process.exit();

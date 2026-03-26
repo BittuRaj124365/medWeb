@@ -1,4 +1,6 @@
 import Medicine from '../models/Medicine.js';
+import AdminActivityLog from '../models/AdminActivityLog.js';
+import Feedback from '../models/Feedback.js';
 
 // @desc    Get all medicines (public) with pagination, filter, search
 // @route   GET /api/medicines
@@ -39,8 +41,10 @@ export const getMedicines = async (req, res) => {
 // @access  Public
 export const getMedicineById = async (req, res) => {
   try {
-    const medicine = await Medicine.findById(req.params.id);
+    const medicine = await Medicine.findById(req.params.id).populate('supplier', 'name email contactNumber');
     if (medicine) {
+      medicine.viewCount = (medicine.viewCount || 0) + 1;
+      await medicine.save();
       res.json(medicine);
     } else {
       res.status(404).json({ message: 'Medicine not found' });
@@ -64,6 +68,14 @@ export const searchMedicines = async (req, res) => {
     } : {};
 
     const medicines = await Medicine.find(keyword).limit(10);
+    
+    if (req.query.q && medicines.length > 0) {
+      await Medicine.updateMany(
+        { _id: { $in: medicines.map(m => m._id) } },
+        { $inc: { searchCount: 1 } }
+      );
+    }
+
     res.json(medicines);
   } catch (error) {
     res.status(500).json({ message: 'Server Error', error: error.message });
@@ -77,6 +89,13 @@ export const createMedicine = async (req, res) => {
   try {
     const medicine = new Medicine(req.body);
     const createdMedicine = await medicine.save();
+
+    await AdminActivityLog.create({
+      actionType: 'ADD',
+      medicineName: createdMedicine.name,
+      adminUsername: req.admin.username
+    });
+
     res.status(201).json(createdMedicine);
   } catch (error) {
     res.status(400).json({ message: 'Invalid data', error: error.message });
@@ -92,7 +111,24 @@ export const updateMedicine = async (req, res) => {
 
     if (medicine) {
       Object.assign(medicine, req.body);
+      
+      // Stock updates - tracking restocks
+      if (req.body.restockQuantity && Number(req.body.restockQuantity) > 0) {
+        medicine.stockQuantity += Number(req.body.restockQuantity);
+        medicine.restockHistory.push({
+          quantityAdded: Number(req.body.restockQuantity),
+          restockedBy: req.admin.username
+        });
+      }
+
       const updatedMedicine = await medicine.save();
+
+      await AdminActivityLog.create({
+        actionType: 'EDIT',
+        medicineName: updatedMedicine.name,
+        adminUsername: req.admin.username
+      });
+
       res.json(updatedMedicine);
     } else {
       res.status(404).json({ message: 'Medicine not found' });
@@ -110,11 +146,48 @@ export const deleteMedicine = async (req, res) => {
     const medicine = await Medicine.findById(req.params.id);
 
     if (medicine) {
+      const name = medicine.name;
       await medicine.deleteOne();
+
+      await AdminActivityLog.create({
+        actionType: 'DELETE',
+        medicineName: name,
+        adminUsername: req.admin.username
+      });
+
       res.json({ message: 'Medicine removed' });
     } else {
       res.status(404).json({ message: 'Medicine not found' });
     }
+  } catch (error) {
+    res.status(500).json({ message: 'Server Error', error: error.message });
+  }
+};
+
+export const addFeedback = async (req, res) => {
+  const { userName, userEmail, rating, message } = req.body;
+  try {
+    const medicine = await Medicine.findById(req.params.id);
+    if (!medicine) {
+      return res.status(404).json({ message: 'Medicine not found' });
+    }
+    const feedback = await Feedback.create({
+      medicine: medicine._id,
+      userName,
+      userEmail,
+      rating: Number(rating),
+      message
+    });
+    res.status(201).json(feedback);
+  } catch (error) {
+    res.status(400).json({ message: 'Invalid feedback data', error: error.message });
+  }
+};
+
+export const getMedicineFeedbacks = async (req, res) => {
+  try {
+    const feedbacks = await Feedback.find({ medicine: req.params.id, approved: true }).sort('-dateSubmitted');
+    res.json(feedbacks);
   } catch (error) {
     res.status(500).json({ message: 'Server Error', error: error.message });
   }
