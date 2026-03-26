@@ -50,17 +50,36 @@ export const updateCredentials = async (req, res) => {
   }
 };
 
-// @desc Update admin profile info (Name + Picture)
+// @desc Update admin account settings (Name, Email, Passwords, Username, Picture)
 // @route PUT /api/admin/profile
 // @access Private (Admin)
 export const updateProfile = async (req, res) => {
-  const { name } = req.body;
+  const { name, email, newUsername, currentPassword, newPassword } = req.body;
   
   try {
-    const admin = await Admin.findById(req.admin._id);
+    const admin = await Admin.findById(req.admin._id).select('+password');
     if (!admin) return res.status(404).json({ message: 'Admin not found' });
 
+    // Validate email format basic check
+    if (email && !/^\S+@\S+\.\S+$/.test(email)) {
+      return res.status(400).json({ message: 'Invalid email format' });
+    }
+
+    // Checking current password if they try to update password
+    if (newPassword) {
+      if (!currentPassword) {
+        return res.status(400).json({ message: 'Current password is required to set a new password' });
+      }
+      const isMatch = await admin.comparePassword(currentPassword);
+      if (!isMatch) {
+         return res.status(401).json({ message: 'Current password is incorrect' });
+      }
+      admin.password = newPassword;
+    }
+
     if (name) admin.name = name;
+    if (email) admin.email = email;
+    if (newUsername) admin.username = newUsername;
     
     // Construct local path URL if file uploaded
     if (req.file) {
@@ -70,14 +89,22 @@ export const updateProfile = async (req, res) => {
 
     await admin.save();
 
+    // Re-issue token using sign just in case username or id implications change
+    const token = jwt.sign({ id: admin._id }, process.env.JWT_SECRET || 'fallback_secret', { expiresIn: '30d' });
+
     res.json({
-      message: 'Profile updated successfully',
+      message: 'Account settings updated successfully',
       _id: admin._id,
       username: admin.username,
       name: admin.name,
-      profilePicture: admin.profilePicture
+      email: admin.email,
+      profilePicture: admin.profilePicture,
+      token,
     });
   } catch (error) {
+    if (error.code === 11000) {
+      return res.status(400).json({ message: 'Email or Username already exists' });
+    }
     res.status(500).json({ message: 'Server Error', error: error.message });
   }
 };
@@ -178,8 +205,11 @@ export const getReports = async (req, res) => {
       expiryDate: { $lte: ninetyDaysFromNow }
     }).sort({ expiryDate: 1 });
 
+    const totalFeedbacks = await Feedback.countDocuments();
+
     res.json({
       stockReport: { totalMedicines, lowStockCount: lowStockMedicines.length, outOfStockCount: outOfStock },
+      totalFeedbacks,
       lowStock: lowStockMedicines,
       mostSearched,
       mostViewed,

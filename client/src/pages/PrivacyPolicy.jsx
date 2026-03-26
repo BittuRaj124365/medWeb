@@ -5,7 +5,7 @@ const PrivacyPolicy = () => {
   return (
     <div className="min-h-screen bg-gray-50 pt-24 pb-16">
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
-        
+
         {/* Header */}
         <div className="text-center mb-16">
           <div className="w-16 h-16 bg-primary/10 rounded-2xl flex items-center justify-center mx-auto mb-6">
@@ -20,7 +20,7 @@ const PrivacyPolicy = () => {
 
         {/* Content Container */}
         <div className="bg-white rounded-3xl shadow-sm border border-gray-100 p-8 md:p-12 space-y-12">
-          
+
           <section>
             <div className="flex items-center gap-3 mb-4">
               <div className="p-2 bg-blue-50 rounded-lg text-blue-600">
@@ -84,7 +84,7 @@ const PrivacyPolicy = () => {
               If you have an account with us, you can request to receive an exported file of the personal data we hold about you, including any data you have provided to us. You can also request that we erase any personal data we hold about you. This does not include any data we are obliged to keep for administrative, legal, or security purposes.
             </p>
           </section>
-          
+
           <div className="bg-gray-50 rounded-2xl p-8 text-center mt-12 border border-gray-100 mt-12">
             <h3 className="text-lg font-bold text-gray-900 mb-2">Have further questions?</h3>
             <p className="text-gray-500 mb-6 max-w-md mx-auto">Our support team is here to help you understand how your data is handled.</p>

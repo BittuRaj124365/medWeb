@@ -110,6 +110,26 @@ const AdminDashboard = () => {
 
         {/* Main Content Area */}
         <div className="flex-grow">
+          {adminData && !adminData.email && (
+            <div className="mb-6 bg-amber-50 border border-amber-200 text-amber-800 p-4 rounded-2xl flex items-center justify-between shadow-sm">
+              <div className="flex items-center gap-3">
+                <div className="p-2 bg-amber-100 rounded-full">
+                  <Activity className="w-5 h-5 text-amber-600" />
+                </div>
+                <div>
+                  <h3 className="font-bold text-sm">Email Address Required</h3>
+                  <p className="text-sm opacity-90">Please add your email address in account settings to enable secure OTP login.</p>
+                </div>
+              </div>
+              <button 
+                onClick={() => setIsSettingsOpen(true)} 
+                className="px-4 py-2 bg-amber-600 text-white text-sm font-bold rounded-xl hover:bg-amber-700 transition"
+              >
+                Add Email
+              </button>
+            </div>
+          )}
+
           {/* Header */}
           <div className="flex justify-between items-center mb-6 bg-white p-4 rounded-2xl shadow-sm border border-gray-100">
             <div className="flex items-center gap-3">
@@ -122,18 +142,11 @@ const AdminDashboard = () => {
             
             <div className="flex items-center gap-2 lg:gap-3 justify-end">
               <button
-                onClick={() => setIsProfileOpen(true)}
-                className="flex items-center gap-2 px-3 py-2 border border-gray-200 text-gray-600 rounded-lg hover:bg-indigo-50 hover:text-indigo-600 hover:border-indigo-200 transition-colors"
-                title="Profile"
-              >
-                <UserCircle className="w-5 h-5" /> <span className="hidden lg:inline text-sm font-medium">Profile</span>
-              </button>
-              <button
                 onClick={() => setIsSettingsOpen(true)}
-                className="flex items-center gap-2 px-3 py-2 border border-gray-200 text-gray-600 rounded-lg hover:bg-blue-50 hover:text-blue-600 hover:border-blue-200 transition-colors"
-                title="Settings"
+                className="flex items-center gap-2 px-3 py-2 border border-gray-200 text-gray-600 rounded-lg hover:bg-indigo-50 hover:text-indigo-600 hover:border-indigo-200 transition-colors"
+                title="Account Settings"
               >
-                <Settings className="w-5 h-5" /> <span className="hidden lg:inline text-sm font-medium">Settings</span>
+                <Settings className="w-5 h-5" /> <span className="hidden lg:inline text-sm font-medium">Account Settings</span>
               </button>
               <button
                 onClick={handleLogout}
@@ -149,54 +162,73 @@ const AdminDashboard = () => {
         </div>
       </div>
 
-      {isSettingsOpen && <CredentialsModal onClose={() => setIsSettingsOpen(false)} adminData={adminData} setAdminData={setAdminData} />}
-      {isProfileOpen && <ProfileModal onClose={() => setIsProfileOpen(false)} adminData={adminData} setAdminData={setAdminData} />}
+      {isSettingsOpen && <AccountSettingsModal onClose={() => setIsSettingsOpen(false)} adminData={adminData} setAdminData={setAdminData} />}
     </div>
   );
 };
 
-// ─── Profile Modal ─────────────────────────────────────────────
-const ProfileModal = ({ onClose, adminData, setAdminData }) => {
-  const [name, setName] = useState(adminData?.name || '');
+// ─── Account Settings Modal ─────────────────────────────────────────────
+const AccountSettingsModal = ({ onClose, adminData, setAdminData }) => {
+  const [formData, setFormData] = useState({
+    name: adminData?.name || '',
+    email: adminData?.email || '',
+    currentPassword: '',
+    newUsername: '',
+    newPassword: '',
+    confirmNewPassword: ''
+  });
   const [file, setFile] = useState(null);
   const [previewUrl, setPreviewUrl] = useState('');
 
   const handleFileChange = (e) => {
     const selectedFile = e.target.files[0];
     if (selectedFile) {
-      setFile(selectedFile);
-      setPreviewUrl(URL.createObjectURL(selectedFile));
+       setFile(selectedFile);
+       setPreviewUrl(URL.createObjectURL(selectedFile));
     }
   };
 
-  const profileMutation = useMutation({
+  const accountMutation = useMutation({
     mutationFn: async () => {
-      const formData = new FormData();
-      formData.append('name', name);
-      if (file) formData.append('profilePicture', file);
+      const uploadData = new FormData();
+      if (formData.name) uploadData.append('name', formData.name);
+      if (formData.email) uploadData.append('email', formData.email);
+      if (formData.newUsername) uploadData.append('newUsername', formData.newUsername);
+      if (formData.currentPassword) uploadData.append('currentPassword', formData.currentPassword);
+      if (formData.newPassword) uploadData.append('newPassword', formData.newPassword);
+      if (file) uploadData.append('profilePicture', file);
 
-      // Using fetch or axios with proper headers for multipart/form-data
-      const res = await apiClient.put('/admin/profile', formData, {
+      const res = await apiClient.put('/admin/profile', uploadData, {
         headers: { 'Content-Type': 'multipart/form-data' }
       });
       return res;
     },
     onSuccess: (res) => {
-      toast.success(res.data.message || 'Profile updated successfully!');
+      toast.success(res.data.message || 'Account settings updated successfully!');
       const user = JSON.parse(localStorage.getItem('adminUser') || '{}');
-      user.name = res.data.name;
-      user.profilePicture = res.data.profilePicture;
+      if (res.data.name) user.name = res.data.name;
+      if (res.data.username) user.username = res.data.username;
+      if (res.data.email) user.email = res.data.email;
+      if (res.data.profilePicture) user.profilePicture = res.data.profilePicture;
+      
       localStorage.setItem('adminUser', JSON.stringify(user));
       setAdminData(user); // trigger re-render
+      
+      if (res.data.token) localStorage.setItem('adminToken', res.data.token);
       onClose();
     },
-    onError: (err) => toast.error(err.response?.data?.message || 'Failed to update profile')
+    onError: (err) => toast.error(err.response?.data?.message || 'Failed to update account')
   });
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    if (!name) return toast.error('Name is required');
-    profileMutation.mutate();
+    if (formData.newPassword && formData.newPassword !== formData.confirmNewPassword) {
+      return toast.error('New passwords do not match');
+    }
+    if (formData.newPassword && !formData.currentPassword) {
+      return toast.error('Current password is required to set a new password');
+    }
+    accountMutation.mutate();
   };
 
   const getInitials = (n) => {
@@ -206,14 +238,15 @@ const ProfileModal = ({ onClose, adminData, setAdminData }) => {
 
   return (
     <div className="fixed inset-0 bg-black/50 flex justify-center items-center z-50 p-4 transition-opacity">
-      <div className="bg-white rounded-2xl shadow-xl w-full max-w-md overflow-hidden">
-        <div className="p-6 border-b flex justify-between items-center bg-gray-50 z-10">
-          <h2 className="text-xl font-bold flex items-center gap-2 text-gray-800"><UserCircle className="w-6 h-6 text-primary" /> Edit Profile</h2>
+      <div className="bg-white rounded-2xl shadow-xl w-full max-w-2xl overflow-hidden max-h-[90vh] flex flex-col">
+        <div className="p-6 border-b flex justify-between items-center bg-gray-50 shrink-0">
+          <h2 className="text-xl font-bold flex items-center gap-2 text-gray-800"><Settings className="w-6 h-6 text-primary" /> Account Settings</h2>
           <button onClick={onClose} className="p-2 text-gray-400 hover:text-gray-900 rounded-full hover:bg-gray-200 transition-colors">✕</button>
         </div>
 
-        <form onSubmit={handleSubmit} className="p-6 space-y-6 bg-white">
-          <div className="flex flex-col items-center gap-4">
+        <form onSubmit={handleSubmit} className="p-6 overflow-y-auto bg-white flex-grow">
+          {/* Avatar Section */}
+          <div className="flex flex-col items-center gap-4 mb-8">
              <div className="relative group cursor-pointer w-24 h-24">
                {previewUrl || adminData?.profilePicture ? (
                  <img 
@@ -223,100 +256,58 @@ const ProfileModal = ({ onClose, adminData, setAdminData }) => {
                  />
                ) : (
                  <div className="w-24 h-24 rounded-full bg-primary/10 text-primary flex items-center justify-center font-bold text-3xl border-4 border-primary/20 shadow-sm">
-                   {getInitials(name || adminData?.username)}
+                   {getInitials(formData.name || adminData?.username)}
                  </div>
                )}
-               
-               {/* Hover Overlay for Camera icon */}
                <label className="absolute inset-0 bg-black/40 rounded-full flex justify-center items-center opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer">
                   <Camera className="w-8 h-8 text-white" />
                   <input type="file" className="hidden" accept=".jpg,.jpeg,.png" onChange={handleFileChange} />
                </label>
              </div>
-             <p className="text-xs text-gray-500 font-medium">Setup your avatar</p>
+             <p className="text-xs text-gray-500 font-medium">Click to upload avatar</p>
           </div>
 
-          <div>
-             <label className="block text-sm font-bold text-gray-700 mb-2">Display Name</label>
-             <input 
-               required 
-               type="text" 
-               value={name} 
-               onChange={e => setName(e.target.value)} 
-               className="w-full p-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-primary outline-none transition-shadow" 
-               placeholder="John Doe"
-             />
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+            <div>
+               <label className="block text-sm font-bold text-gray-700 mb-2">Display Name</label>
+               <input type="text" value={formData.name} onChange={e => setFormData({ ...formData, name: e.target.value })} className="w-full p-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-primary outline-none" placeholder="Admin Name" />
+            </div>
+            <div>
+               <label className="block text-sm font-bold text-gray-700 mb-2">Email Address *</label>
+               <input required type="email" value={formData.email} onChange={e => setFormData({ ...formData, email: e.target.value })} className="w-full p-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-primary outline-none" placeholder="admin@example.com" />
+            </div>
+            <div>
+               <label className="block text-sm font-bold text-gray-700 mb-2">Username</label>
+               <input type="text" value={formData.newUsername} onChange={e => setFormData({ ...formData, newUsername: e.target.value })} className="w-full p-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-primary outline-none" placeholder={adminData?.username || ''} />
+            </div>
           </div>
 
-          <div className="flex justify-end gap-3 pt-4 border-t mt-6">
+          <div className="border-t pt-6 border-gray-100 mt-2">
+            <p className="text-sm text-gray-800 mb-4 font-bold flex items-center gap-2"><KeyRound className="w-4 h-4 text-primary"/> Change Password</p>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="md:col-span-2">
+                 <label className="block text-sm font-medium mb-1 text-gray-600">Current Password (Required to change password)</label>
+                 <input type="password" value={formData.currentPassword} onChange={e => setFormData({ ...formData, currentPassword: e.target.value })} className="w-full p-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-primary outline-none" placeholder="Enter current password" />
+              </div>
+              <div>
+                 <label className="block text-sm font-medium mb-1 text-gray-600">New Password</label>
+                 <input type="password" value={formData.newPassword} onChange={e => setFormData({ ...formData, newPassword: e.target.value })} className="w-full p-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-primary outline-none" placeholder="Leave blank to keep same" />
+              </div>
+              <div>
+                 <label className="block text-sm font-medium mb-1 text-gray-600">Confirm New Password</label>
+                 <input type="password" value={formData.confirmNewPassword} onChange={e => setFormData({ ...formData, confirmNewPassword: e.target.value })} className="w-full p-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-primary outline-none" placeholder="Leave blank to keep same" />
+              </div>
+            </div>
+          </div>
+          
+          <div className="flex justify-end gap-3 pt-6 border-t border-gray-100 mt-6 sticky bottom-0 bg-white">
              <button type="button" onClick={onClose} className="px-5 py-2.5 border text-gray-600 rounded-xl hover:bg-gray-50 font-medium transition-colors">Cancel</button>
-             <button type="submit" disabled={profileMutation.isLoading} className="px-6 py-2.5 bg-primary text-white rounded-xl font-bold hover:bg-teal-700 transition-colors disabled:opacity-70">
-               {profileMutation.isLoading ? 'Saving...' : 'Save Profile'}
+             <button type="submit" disabled={accountMutation.isLoading} className="px-6 py-2.5 bg-primary text-white rounded-xl font-bold hover:bg-teal-700 transition-colors disabled:opacity-70">
+               {accountMutation.isLoading ? 'Saving...' : 'Save Account Settings'}
              </button>
           </div>
         </form>
       </div>
-    </div>
-  );
-};
-
-// ─── Settings / Credentials Modal ─────────────────────────────────────────────
-const CredentialsModal = ({ onClose, adminData, setAdminData }) => {
-  const [formData, setFormData] = useState({
-    currentPassword: '',
-    newUsername: '',
-    newPassword: '',
-    confirmNewPassword: ''
-  });
-
-  const credentialsMutation = useMutation({
-    mutationFn: (data) => apiClient.put('/admin/credentials', data),
-    onSuccess: (res) => {
-      toast.success(res.data.message || 'Credentials updated!');
-      const user = JSON.parse(localStorage.getItem('adminUser') || '{}');
-      if (res.data.username) user.username = res.data.username;
-      localStorage.setItem('adminUser', JSON.stringify(user));
-      setAdminData(user); // trigger re-render
-      if (res.data.token) localStorage.setItem('adminToken', res.data.token);
-      onClose();
-    },
-    onError: (err) => toast.error(err.response?.data?.message || 'Failed to update credentials')
-  });
-
-  const handleSubmit = (e) => {
-    e.preventDefault();
-    if (formData.newPassword && formData.newPassword !== formData.confirmNewPassword) return toast.error('New passwords do not match');
-    if (!formData.newUsername && !formData.newPassword) return toast.error('Provide at least a username or password');
-    credentialsMutation.mutate({
-      currentPassword: formData.currentPassword,
-      newUsername: formData.newUsername || undefined,
-      newPassword: formData.newPassword || undefined
-    });
-  };
-
-  return (
-    <div className="fixed inset-0 bg-black/50 flex justify-center items-center z-50 p-4 transition-opacity">
-      <div className="bg-white rounded-2xl shadow-xl w-full max-w-md">
-        <div className="p-6 border-b flex justify-between items-center bg-gray-50 z-10">
-          <h2 className="text-xl font-bold flex items-center gap-2 text-gray-800"><KeyRound className="w-5 h-5 text-primary" /> Credentials</h2>
-          <button onClick={onClose} className="p-2 text-gray-400 hover:text-gray-900 rounded-full hover:bg-gray-200 transition-colors">✕</button>
-        </div>
-        <form onSubmit={handleSubmit} className="p-6 space-y-4">
-          <div><label className="block text-sm font-medium mb-1">Current Password *</label><input required type="password" value={formData.currentPassword} onChange={e => setFormData({ ...formData, currentPassword: e.target.value })} className="w-full p-2.5 border rounded-lg focus:ring-2 focus:ring-primary outline-none" /></div>
-          <div className="border-t pt-4 border-gray-100">
-            <p className="text-xs text-gray-500 mb-3 font-bold uppercase tracking-wide">New Credentials</p>
-            <div className="space-y-4">
-              <div><label className="block text-sm font-medium mb-1 text-gray-700">New Username</label><input type="text" value={formData.newUsername} onChange={e => setFormData({ ...formData, newUsername: e.target.value })} className="w-full p-2.5 border rounded-lg focus:ring-2 focus:ring-primary outline-none" placeholder={adminData?.username || ''} /></div>
-              <div><label className="block text-sm font-medium mb-1 text-gray-700">New Password</label><input type="password" value={formData.newPassword} onChange={e => setFormData({ ...formData, newPassword: e.target.value })} className="w-full p-2.5 border rounded-lg focus:ring-2 focus:ring-primary outline-none" /></div>
-              <div><label className="block text-sm font-medium mb-1 text-gray-700">Confirm New Password</label><input type="password" value={formData.confirmNewPassword} onChange={e => setFormData({ ...formData, confirmNewPassword: e.target.value })} className="w-full p-2.5 border rounded-lg focus:ring-2 focus:ring-primary outline-none" /></div>
-            </div>
-          </div>
-          <div className="flex justify-end gap-3 pt-4 border-t border-gray-100 mt-4">
-             <button type="button" onClick={onClose} className="px-5 py-2.5 border text-gray-600 rounded-lg hover:bg-gray-50 font-medium transition-colors">Cancel</button>
-             <button type="submit" disabled={credentialsMutation.isLoading} className="px-5 py-2.5 bg-primary text-white rounded-lg font-bold hover:bg-teal-700 transition-colors disabled:opacity-70">{credentialsMutation.isLoading ? 'Saving...' : 'Save Changes'}</button>
-          </div>
-         </form>
-       </div>
     </div>
   );
 };

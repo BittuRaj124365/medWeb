@@ -16,7 +16,7 @@ const OverviewTab = () => {
   return (
     <div className="space-y-6">
       {/* Stats */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         <div className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm flex items-center gap-4 hover:shadow-md transition-shadow">
           <div className="p-4 bg-primary/10 rounded-xl text-primary">
             <Package className="w-8 h-8" />
@@ -42,6 +42,16 @@ const OverviewTab = () => {
           <div>
             <p className="text-sm font-medium text-gray-500">Out of Stock</p>
             <h3 className="text-3xl font-bold text-gray-900">{reports?.stockReport?.outOfStockCount || 0}</h3>
+          </div>
+        </div>
+        <div className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm flex items-center gap-4 hover:shadow-md transition-shadow">
+          <div className="p-4 bg-indigo-50 rounded-xl text-indigo-600">
+             {/* Using Star from lucide-react if imported, else fallback to something else, or import MessageSquare */}
+             <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-8 h-8"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg>
+          </div>
+          <div>
+            <p className="text-sm font-medium text-gray-500">Total Feedbacks</p>
+            <h3 className="text-3xl font-bold text-gray-900">{reports?.totalFeedbacks || 0}</h3>
           </div>
         </div>
       </div>
