@@ -183,6 +183,14 @@ const HomePage = () => {
     }
   });
 
+  const { data: ratingStats, isLoading: isLoadingStats } = useQuery({
+    queryKey: ['shopRatingStats'],
+    queryFn: async () => {
+      const res = await apiClient.get('/medicines/shop-ratings');
+      return res.data;
+    }
+  });
+
   const categories = [
     { name: 'Tablet', icon: <Pill className="w-6 h-6" />, color: 'bg-blue-50 border-blue-100 text-blue-700 hover:bg-blue-100 hover:border-blue-200' },
     { name: 'Syrup', icon: <Activity className="w-6 h-6" />, color: 'bg-purple-50 border-purple-100 text-purple-700 hover:bg-purple-100 hover:border-purple-200' },
@@ -353,6 +361,81 @@ const HomePage = () => {
           )}
         </div>
       </section>
+
+      {/* ── SHOP RATING STATS ── */}
+      {!isLoadingStats && ratingStats && (
+        <section className="py-24 bg-white border-t border-slate-50">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="flex flex-col md:flex-row justify-between items-end gap-6 mb-16">
+              <div className="space-y-3 prose">
+                <h2 className="text-4xl font-black text-slate-900 tracking-tight m-0">What Our Patients Say</h2>
+                <p className="text-slate-400 text-lg font-medium m-0">Real feedback from verified medicine purchasers.</p>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-12">
+              <div className="lg:col-span-4 space-y-8">
+                <div className="bg-slate-50 p-8 rounded-[40px] border border-slate-100 flex flex-col items-center justify-center text-center">
+                  <h3 className="text-6xl font-black text-slate-900 mb-2">{ratingStats.averageRating.toFixed(1)}</h3>
+                  <div className="flex gap-1 mb-3">
+                    {[1, 2, 3, 4, 5].map((star) => (
+                      <Star key={star} className={`w-6 h-6 ${star <= Math.round(ratingStats.averageRating) ? 'fill-amber-400 text-amber-400' : 'fill-slate-200 text-slate-200'}`} />
+                    ))}
+                  </div>
+                  <p className="text-slate-500 font-medium tracking-wide text-sm uppercase">Based on {ratingStats.totalReviews} reviews</p>
+                </div>
+                
+                <div className="space-y-4 px-4">
+                  {[5, 4, 3, 2, 1].map((star) => {
+                    const count = ratingStats.ratingDistribution[star] || 0;
+                    const percentage = ratingStats.totalReviews === 0 ? 0 : (count / ratingStats.totalReviews) * 100;
+                    return (
+                      <div key={star} className="flex items-center gap-4 text-sm font-bold text-slate-600">
+                        <span className="w-8 flex items-center gap-1.5">{star} <Star className="w-3.5 h-3.5 fill-current" /></span>
+                        <div className="flex-1 h-3 bg-slate-100 rounded-full overflow-hidden">
+                          <div className="h-full bg-amber-400 rounded-full" style={{ width: `${percentage}%` }}></div>
+                        </div>
+                        <span className="w-8 text-right text-slate-400 font-medium">{count}</span>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+
+              <div className="lg:col-span-8">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                  {ratingStats.recentReviews.map((review) => (
+                    <div key={review._id} className="bg-white p-6 rounded-[32px] border border-slate-100 shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300 flex flex-col h-full">
+                      <div className="flex items-start justify-between mb-4">
+                        <div>
+                          <p className="font-bold text-slate-900">{review.userName}</p>
+                          <p className="text-xs font-bold text-slate-400 mt-1 uppercase tracking-wider">{new Date(review.dateSubmitted).toLocaleDateString()}</p>
+                        </div>
+                        <div className="flex gap-0.5">
+                          {[...Array(5)].map((_, i) => (
+                            <Star key={i} className={`w-4 h-4 ${i < review.rating ? 'fill-amber-400 text-amber-400' : 'fill-slate-100 text-slate-100'}`} />
+                          ))}
+                        </div>
+                      </div>
+                      <div className="flex-grow">
+                         <p className="text-slate-600 leading-relaxed text-sm italic">"{review.message}"</p>
+                      </div>
+                      <div className="mt-6 pt-4 border-t border-slate-50 flex items-center gap-2 text-xs font-bold text-primary mb-0 uppercase tracking-wider">
+                         <Package className="w-4 h-4" /> Purchased {review.medicine?.name}
+                      </div>
+                    </div>
+                  ))}
+                  {ratingStats.recentReviews.length === 0 && (
+                     <div className="col-span-full p-12 text-center text-slate-400 font-medium bg-slate-50 rounded-[32px] border border-slate-100">
+                        No reviews published yet.
+                     </div>
+                  )}
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+      )}
 
       {/* ── PHARMACIST GUIDE & BLOGS ── */}
       <section className="py-28 bg-slate-900 text-white overflow-hidden relative">

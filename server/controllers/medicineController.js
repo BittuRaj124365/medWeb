@@ -192,3 +192,37 @@ export const getMedicineFeedbacks = async (req, res) => {
     res.status(500).json({ message: 'Server Error', error: error.message });
   }
 };
+
+export const getShopRatingStats = async (req, res) => {
+  try {
+    const approvedFeedbacks = await Feedback.find({ approved: true })
+      .populate('medicine', 'name')
+      .sort('-dateSubmitted');
+      
+    const totalReviews = approvedFeedbacks.length;
+
+    let averageRating = 0;
+    let starCounts = { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 };
+
+    if (totalReviews > 0) {
+      let sum = 0;
+      approvedFeedbacks.forEach(fb => {
+        sum += fb.rating;
+        starCounts[fb.rating] = (starCounts[fb.rating] || 0) + 1;
+      });
+      averageRating = sum / totalReviews;
+    }
+
+    const recentReviews = approvedFeedbacks.slice(0, 3); // Get 3 most recent
+
+    res.json({
+      averageRating: Number(averageRating.toFixed(1)),
+      totalReviews,
+      starCounts,
+      recentReviews
+    });
+
+  } catch (error) {
+    res.status(500).json({ message: 'Server Error', error: error.message });
+  }
+};

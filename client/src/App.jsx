@@ -10,6 +10,7 @@ import Footer from './components/Footer';
 import HomePage from './pages/HomePage';
 import MedicineListingPage from './pages/MedicineListingPage';
 import MedicineDetailPage from './pages/MedicineDetailPage';
+import PrivacyPolicy from './pages/PrivacyPolicy';
 import AdminLoginPage from './pages/admin/AdminLoginPage';
 import AdminDashboard from './pages/admin/AdminDashboard';
 import { CartProvider } from './context/CartContext';
@@ -36,6 +37,7 @@ function App() {
                 <Route path="/" element={<HomePage />} />
                 <Route path="/medicines" element={<MedicineListingPage />} />
                 <Route path="/medicines/:id" element={<MedicineDetailPage />} />
+                <Route path="/privacy-policy" element={<PrivacyPolicy />} />
 
                 {/* Admin Routes */}
                 <Route path="/admin" element={<AdminLoginPage />} />

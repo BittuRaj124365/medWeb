@@ -1,10 +1,12 @@
+import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { CheckCircle, XCircle, Trash2, MessageSquare } from 'lucide-react';
+import { CheckCircle, XCircle, Trash2, MessageSquare, Search } from 'lucide-react';
 import toast from 'react-hot-toast';
 import apiClient from '../../api/apiClient';
 
 const FeedbacksTab = () => {
   const queryClient = useQueryClient();
+  const [searchTerm, setSearchTerm] = useState('');
 
   const { data: feedbacks, isLoading } = useQuery({
     queryKey: ['adminFeedbacks'],
@@ -34,9 +36,21 @@ const FeedbacksTab = () => {
 
   return (
     <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
-      <div className="p-6 border-b border-gray-100 bg-gray-50/50 flex items-center gap-2">
-         <MessageSquare className="w-5 h-5 text-gray-600"/>
-         <h2 className="text-lg font-bold text-gray-900">User Feedbacks Management</h2>
+      <div className="p-6 border-b border-gray-100 bg-gray-50/50 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+        <div className="flex items-center gap-2">
+           <MessageSquare className="w-5 h-5 text-gray-600"/>
+           <h2 className="text-lg font-bold text-gray-900">User Feedbacks Management</h2>
+        </div>
+        <div className="relative w-full sm:w-64">
+          <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+          <input 
+            type="text" 
+            placeholder="Search feedbacks by name..." 
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="w-full pl-9 pr-4 py-2 text-sm border border-gray-200 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary outline-none transition-all"
+          />
+        </div>
       </div>
       
       <div className="overflow-x-auto">
@@ -57,7 +71,12 @@ const FeedbacksTab = () => {
             ) : feedbacks?.length === 0 ? (
               <tr><td colSpan="6" className="p-8 text-center text-gray-500">No feedbacks found.</td></tr>
             ) : (
-              feedbacks?.map(fb => (
+              feedbacks?.filter(fb => 
+                fb.userName.toLowerCase().includes(searchTerm.toLowerCase()) || 
+                (fb.userEmail && fb.userEmail.toLowerCase().includes(searchTerm.toLowerCase())) || 
+                (fb.medicine?.name && fb.medicine.name.toLowerCase().includes(searchTerm.toLowerCase())) ||
+                (fb.message && fb.message.toLowerCase().includes(searchTerm.toLowerCase()))
+              ).map(fb => (
                 <tr key={fb._id} className="hover:bg-gray-50 transition-colors">
                   <td className="p-4">
                     <div className="font-medium text-gray-900">{fb.userName}</div>

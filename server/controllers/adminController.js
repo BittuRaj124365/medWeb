@@ -5,34 +5,7 @@ import AdminActivityLog from '../models/AdminActivityLog.js';
 import Feedback from '../models/Feedback.js';
 import jwt from 'jsonwebtoken';
 
-const generateToken = (id) => {
-  return jwt.sign({ id }, process.env.JWT_SECRET || 'fallback_secret', {
-    expiresIn: '30d',
-  });
-};
-
-// @desc    Auth admin & get token
-// @route   POST /api/auth/login
-// @access  Public
-export const authAdmin = async (req, res) => {
-  const { username, password } = req.body;
-
-  try {
-    const admin = await Admin.findOne({ username });
-
-    if (admin && (await admin.comparePassword(password))) {
-      res.json({
-        _id: admin._id,
-        username: admin.username,
-        token: generateToken(admin._id),
-      });
-    } else {
-      res.status(401).json({ message: 'Invalid username or password' });
-    }
-  } catch (error) {
-    res.status(500).json({ message: 'Server Error', error: error.message });
-  }
-};
+// Auth logic moved to authController.js
 
 // @desc    Update admin credentials
 // @route   PUT /api/admin/credentials
@@ -61,16 +34,50 @@ export const updateCredentials = async (req, res) => {
 
     await admin.save();
 
-    // Issue a fresh token so the session stays valid after username change
-    const token = generateToken(admin._id);
+    // Re-issue token using sign to avoid importing generateToken
+    const token = jwt.sign({ id: admin._id }, process.env.JWT_SECRET || 'fallback_secret', { expiresIn: '30d' });
 
     res.json({
       message: 'Credentials updated successfully',
       username: admin.username,
+      name: admin.name,
+      profilePicture: admin.profilePicture,
       token,
     });
   } catch (error) {
     console.error('updateCredentials error:', error);
+    res.status(500).json({ message: 'Server Error', error: error.message });
+  }
+};
+
+// @desc Update admin profile info (Name + Picture)
+// @route PUT /api/admin/profile
+// @access Private (Admin)
+export const updateProfile = async (req, res) => {
+  const { name } = req.body;
+  
+  try {
+    const admin = await Admin.findById(req.admin._id);
+    if (!admin) return res.status(404).json({ message: 'Admin not found' });
+
+    if (name) admin.name = name;
+    
+    // Construct local path URL if file uploaded
+    if (req.file) {
+      // Create a URL pointing to the static uploads folder
+      admin.profilePicture = `/uploads/${req.file.filename}`;
+    }
+
+    await admin.save();
+
+    res.json({
+      message: 'Profile updated successfully',
+      _id: admin._id,
+      username: admin.username,
+      name: admin.name,
+      profilePicture: admin.profilePicture
+    });
+  } catch (error) {
     res.status(500).json({ message: 'Server Error', error: error.message });
   }
 };

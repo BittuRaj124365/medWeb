@@ -249,11 +249,13 @@ const seedDB = async () => {
     // Create an Admin Admin User
     const adminUser = new Admin({
       username: 'admin',
-      password: 'password123'
+      password: 'password123',
+      email: 'admin@medweb.com',
+      name: 'Super Admin'
     });
     await adminUser.save();
 
-    console.log('Admin user created (username: admin, password: password123)');
+    console.log('Admin user created (username: admin, password: password123, email: admin@medweb.com)');
 
     // Create Suppliers
     const suppliersData = [

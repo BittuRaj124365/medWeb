@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Plus, Edit2, Trash2 } from 'lucide-react';
+import { Plus, Edit2, Trash2, Search } from 'lucide-react';
 import toast from 'react-hot-toast';
 import apiClient from '../../api/apiClient';
 
@@ -8,6 +8,7 @@ const InventoryTab = () => {
   const queryClient = useQueryClient();
   const [isAdding, setIsAdding] = useState(false);
   const [editingMedicine, setEditingMedicine] = useState(null);
+  const [searchTerm, setSearchTerm] = useState('');
 
   const { data: medicinesData, isLoading } = useQuery({
     queryKey: ['adminMedicines'],
@@ -30,14 +31,26 @@ const InventoryTab = () => {
 
   return (
     <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
-      <div className="p-6 border-b border-gray-100 flex justify-between items-center bg-gray-50/50">
+      <div className="p-6 border-b border-gray-100 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-gray-50/50">
         <h2 className="text-lg font-bold text-gray-900">Inventory Management</h2>
-        <button
-          onClick={() => { setEditingMedicine(null); setIsAdding(true); }}
-          className="flex items-center gap-2 bg-primary text-white px-4 py-2 rounded-lg hover:bg-teal-700 transition-colors text-sm font-medium shadow-sm hover:shadow-md"
-        >
-          <Plus className="w-4 h-4" /> Add Medicine
-        </button>
+        <div className="flex items-center gap-3 w-full sm:w-auto">
+          <div className="relative flex-grow sm:flex-grow-0 sm:w-64">
+            <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+            <input 
+              type="text" 
+              placeholder="Search medicines..." 
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="w-full pl-9 pr-4 py-2 text-sm border border-gray-200 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary outline-none transition-all"
+            />
+          </div>
+          <button
+            onClick={() => { setEditingMedicine(null); setIsAdding(true); }}
+            className="flex items-center gap-2 bg-primary text-white px-4 py-2 rounded-lg hover:bg-teal-700 transition-colors text-sm font-medium shadow-sm hover:shadow-md whitespace-nowrap"
+          >
+            <Plus className="w-4 h-4" /> Add Medicine
+          </button>
+        </div>
       </div>
 
       <div className="overflow-x-auto">
@@ -58,7 +71,11 @@ const InventoryTab = () => {
             ) : medicinesData?.medicines?.length === 0 ? (
               <tr><td colSpan="6" className="p-8 text-center text-gray-500">No medicines found. Add some!</td></tr>
             ) : (
-              medicinesData?.medicines?.map(med => (
+              medicinesData?.medicines?.filter(med => 
+                 med.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
+                 med.category.toLowerCase().includes(searchTerm.toLowerCase()) || 
+                 (med.manufacturer && med.manufacturer.toLowerCase().includes(searchTerm.toLowerCase()))
+              ).map(med => (
                 <tr key={med._id} className="hover:bg-gray-50 transition-colors group">
                   <td className="p-4">
                     <div className="font-medium text-gray-900">{med.name}</div>
