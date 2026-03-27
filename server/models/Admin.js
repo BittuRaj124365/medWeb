@@ -10,7 +10,9 @@ const adminSchema = new mongoose.Schema({
   otp: { type: String, default: null },
   otpExpiry: { type: Date, default: null },
   otpAttempts: { type: Number, default: 0 },
-  lockUntil: { type: Date, default: null }
+  lockUntil: { type: Date, default: null },
+  resetPasswordToken: { type: String, default: null },
+  resetPasswordExpiry: { type: Date, default: null }
 }, { timestamps: true });
 
 // Hash password before saving

@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useNavigate, Link } from 'react-router-dom';
 import {
@@ -11,65 +11,17 @@ import apiClient from '../api/apiClient';
 import MedicineCard from '../components/MedicineCard';
 import LoadingSkeleton from '../components/LoadingSkeleton';
 
-// Leaflet map component
-const StoreMap = () => {
-  const mapRef = useRef(null);
-  const mapInstanceRef = useRef(null);
-
-  useEffect(() => {
-    if (mapInstanceRef.current) return;
-
-    import('leaflet').then((L) => {
-      delete L.Icon.Default.prototype._getIconUrl;
-      L.Icon.Default.mergeOptions({
-        iconRetinaUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png',
-        iconUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png',
-        shadowUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png',
-      });
-
-      const map = L.map(mapRef.current, { zoomControl: true, scrollWheelZoom: false }).setView([28.6139, 77.2090], 14);
-
-      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-        attribution: '© OpenStreetMap contributors',
-        maxZoom: 19,
-      }).addTo(map);
-
-      const customIcon = L.divIcon({
-        className: '',
-        html: `<div style="width:40px;height:40px;background:linear-gradient(135deg,#0d9488,#059669);border-radius:50% 50% 50% 0;transform:rotate(-45deg);border:3px solid white;box-shadow:0 4px 15px rgba(13,148,136,0.5);">
-          <div style="transform:rotate(45deg);display:flex;align-items:center;justify-content:center;width:100%;height:100%;color:white;font-size:14px;">+</div>
-        </div>`,
-        iconSize: [40, 40],
-        iconAnchor: [20, 40],
-        popupAnchor: [0, -44],
-      });
-
-      L.marker([28.6139, 77.2090], { icon: customIcon })
-        .addTo(map)
-        .bindPopup(`
-          <div style="font-family:Inter,sans-serif;padding:4px 2px;">
-            <strong style="color:#0d9488;font-size:15px;">MedShop</strong><br/>
-            <span style="color:#555;">123 Health Street, New Delhi - 110001</span><br/>
-            <span style="color:#059669;">⏰ Open: 8AM – 10PM</span>
-          </div>
-        `)
-        .openPopup();
-
-      mapInstanceRef.current = map;
-    });
-
-    return () => {
-      if (mapInstanceRef.current) {
-        mapInstanceRef.current.remove();
-        mapInstanceRef.current = null;
-      }
-    };
-  }, []);
-
-  return (
-    <div ref={mapRef} className="w-full h-full rounded-3xl" style={{ minHeight: '400px' }} />
-  );
-};
+// Clean iframe-based map — no CSS dependencies, no crashes
+const StoreMap = () => (
+  <iframe
+    src="https://www.openstreetmap.org/export/embed.html?bbox=77.1890%2C28.6039%2C77.2290%2C28.6239&layer=mapnik&marker=28.6139%2C77.2090"
+    className="w-full h-full"
+    style={{ minHeight: '400px', border: 'none' }}
+    title="MedShop Store Location — New Delhi"
+    loading="lazy"
+    allowFullScreen
+  />
+);
 
 const BlogModal = ({ isOpen, onClose }) => {
   if (!isOpen) return null;
@@ -387,7 +339,7 @@ const HomePage = () => {
                 
                 <div className="space-y-4 px-4">
                   {[5, 4, 3, 2, 1].map((star) => {
-                    const count = ratingStats.ratingDistribution[star] || 0;
+                    const count = ratingStats.starCounts?.[star] || 0;
                     const percentage = ratingStats.totalReviews === 0 ? 0 : (count / ratingStats.totalReviews) * 100;
                     return (
                       <div key={star} className="flex items-center gap-4 text-sm font-bold text-slate-600">

@@ -66,7 +66,7 @@ const Navbar = () => {
             {/* Right Actions */}
             <div className="flex items-center gap-2 sm:gap-4">
               {/* Mobile Search Toggle */}
-              <button 
+              <button
                 onClick={() => setIsMobileSearchVisible(!isMobileSearchVisible)}
                 className="p-2 text-gray-500 hover:text-primary transition-colors md:hidden"
               >
@@ -93,7 +93,7 @@ const Navbar = () => {
                 )}
               </button>
 
-              <button 
+              <button
                 onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
                 className="p-2 text-gray-500 hover:text-primary transition-colors lg:hidden"
               >
@@ -124,22 +124,22 @@ const Navbar = () => {
         {/* Mobile Menu */}
         {isMobileMenuOpen && (
           <div className="lg:hidden bg-white border-t border-gray-100 py-4 px-4 space-y-1 shadow-inner">
-            <Link 
-              to="/" 
+            <Link
+              to="/"
               onClick={() => setIsMobileMenuOpen(false)}
               className={`block px-4 py-3 rounded-xl font-bold ${location.pathname === '/' ? 'text-primary bg-primary/5' : 'text-gray-600'}`}
             >
               Home
             </Link>
-            <Link 
-              to="/medicines" 
+            <Link
+              to="/medicines"
               onClick={() => setIsMobileMenuOpen(false)}
               className={`block px-4 py-3 rounded-xl font-bold ${location.pathname === '/medicines' ? 'text-primary bg-primary/5' : 'text-gray-600'}`}
             >
               Browse
             </Link>
-            <Link 
-              to="/admin" 
+            <Link
+              to="/admin"
               onClick={() => setIsMobileMenuOpen(false)}
               className="block px-4 py-3 rounded-xl font-bold text-gray-600 flex items-center gap-2"
             >

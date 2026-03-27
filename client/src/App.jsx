@@ -5,6 +5,7 @@ import { Toaster } from 'react-hot-toast';
 // Layout & Components
 import Navbar from './components/Navbar';
 import Footer from './components/Footer';
+import NoInternetBanner from './components/NoInternetBanner';
 
 // Pages
 import HomePage from './pages/HomePage';
@@ -13,6 +14,7 @@ import MedicineDetailPage from './pages/MedicineDetailPage';
 import PrivacyPolicy from './pages/PrivacyPolicy';
 import AdminLoginPage from './pages/admin/AdminLoginPage';
 import AdminDashboard from './pages/admin/AdminDashboard';
+import AdminResetPasswordPage from './pages/admin/AdminResetPasswordPage';
 import { CartProvider } from './context/CartContext';
 
 const queryClient = new QueryClient({
@@ -42,11 +44,13 @@ function App() {
                 {/* Admin Routes */}
                 <Route path="/admin" element={<AdminLoginPage />} />
                 <Route path="/admin/dashboard" element={<AdminDashboard />} />
+                <Route path="/admin/reset-password" element={<AdminResetPasswordPage />} />
               </Routes>
             </main>
             <Footer />
           </div>
-          <Toaster position="top-right" />
+          <Toaster position="top-right" toastOptions={{ duration: 4000 }} />
+          <NoInternetBanner />
         </Router>
       </CartProvider>
     </QueryClientProvider>
