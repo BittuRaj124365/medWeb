@@ -63,16 +63,77 @@ export const login = async (req, res) => {
       return res.status(403).json({ message: 'Account locked. Try again later.' });
     }
 
+    // First-time setup: no email registered yet
+    if (!admin.email) {
+      return res.json({
+        requiresSetup: true,
+        username: admin.username,
+        message: 'No email registered. Please complete account setup.'
+      });
+    }
+
     // Generate 6 digit OTP
     const otp = Math.floor(100000 + Math.random() * 900000).toString();
     admin.otp = otp;
     admin.otpExpiry = new Date(Date.now() + 5 * 60 * 1000); // 5 minutes
-    admin.otpAttempts = 0; // reset attempts on new login
+    admin.otpAttempts = 0;
     await admin.save();
 
     await sendOTPEmail(admin.email, otp);
 
     res.json({ message: 'OTP sent to registered email', username: admin.username, requiresOtp: true });
+
+  } catch (error) {
+    res.status(500).json({ message: 'Server Error', error: error.message });
+  }
+};
+
+// @desc  First-time email setup — called after password is verified but before OTP
+// @route POST /api/auth/setup-email
+// @access Public (username proves identity after successful password step)
+export const setupEmail = async (req, res) => {
+  const { username, name, email, confirmEmail } = req.body;
+
+  try {
+    if (!email) {
+      return res.status(400).json({ message: 'Email address is required' });
+    }
+
+    // Accept any valid email, not just Gmail (admin may use work email)
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      return res.status(400).json({ message: 'Please enter a valid email address' });
+    }
+
+    if (email !== confirmEmail) {
+      return res.status(400).json({ message: 'Email addresses do not match' });
+    }
+
+    const admin = await Admin.findOne({ username });
+    if (!admin) return res.status(404).json({ message: 'Admin not found' });
+
+    if (admin.email) {
+      return res.status(400).json({
+        message: 'Email is already configured. Use Account Settings to update it.'
+      });
+    }
+
+    if (name && name.trim()) admin.name = name.trim();
+    admin.email = email.toLowerCase().trim();
+
+    // Generate OTP and send immediately
+    const otp = Math.floor(100000 + Math.random() * 900000).toString();
+    admin.otp = otp;
+    admin.otpExpiry = new Date(Date.now() + 5 * 60 * 1000);
+    admin.otpAttempts = 0;
+    await admin.save();
+
+    await sendOTPEmail(admin.email, otp);
+
+    res.json({
+      message: 'Email saved successfully. OTP sent to your email.',
+      username: admin.username,
+      requiresOtp: true
+    });
 
   } catch (error) {
     res.status(500).json({ message: 'Server Error', error: error.message });
@@ -101,14 +162,14 @@ export const verifyOtp = async (req, res) => {
     if (admin.otp !== otp) {
       admin.otpAttempts += 1;
       if (admin.otpAttempts >= 3) {
-        admin.lockUntil = new Date(Date.now() + 10 * 60 * 1000); // lock for 10 mins
+        admin.lockUntil = new Date(Date.now() + 10 * 60 * 1000);
         admin.otp = null;
         admin.otpExpiry = null;
         await admin.save();
         return res.status(403).json({ message: 'Too many incorrect attempts. Account locked for 10 minutes.' });
       }
       await admin.save();
-      return res.status(400).json({ message: 'Incorrect OTP' });
+      return res.status(400).json({ message: `Incorrect OTP. ${3 - admin.otpAttempts} attempt(s) remaining.` });
     }
 
     // Success
@@ -122,6 +183,7 @@ export const verifyOtp = async (req, res) => {
       _id: admin._id,
       username: admin.username,
       name: admin.name,
+      email: admin.email,
       profilePicture: admin.profilePicture,
       token: generateToken(admin._id),
     });
@@ -141,7 +203,11 @@ export const resendOtp = async (req, res) => {
       return res.status(403).json({ message: 'Account locked. Try again later.' });
     }
 
-    // Cooldown check 
+    if (!admin.email) {
+      return res.status(400).json({ message: 'No email registered. Please complete account setup first.' });
+    }
+
+    // Cooldown check
     if (admin.otpExpiry) {
       const timeSinceLastOtp = (5 * 60 * 1000) - (admin.otpExpiry - Date.now());
       if (timeSinceLastOtp < 30 * 1000) {

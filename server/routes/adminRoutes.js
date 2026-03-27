@@ -21,6 +21,12 @@ import {
   updateMedicine, 
   deleteMedicine 
 } from '../controllers/medicineController.js';
+import {
+  getProductReports,
+  getUnreviewedCount,
+  updateReportStatus,
+  deleteReport
+} from '../controllers/reportController.js';
 import { protectAdmin } from '../middleware/auth.js';
 
 const router = express.Router();
@@ -36,7 +42,7 @@ const storage = multer.diskStorage({
 });
 const upload = multer({ 
   storage,
-  limits: { fileSize: 5000000 }, // 5MB limit
+  limits: { fileSize: 5000000 },
   fileFilter(req, file, cb) {
     if(!file.originalname.match(/\.(jpg|jpeg|png)$/)) {
       return cb(new Error('Please upload an image'));
@@ -61,7 +67,7 @@ router.route('/suppliers/:id')
   .put(protectAdmin, updateSupplier)
   .delete(protectAdmin, deleteSupplier);
 
-// Logs & Reports
+// Logs & Inventory Reports
 router.get('/logs', protectAdmin, getAdminLogs);
 router.get('/reports', protectAdmin, getReports);
 
@@ -71,5 +77,11 @@ router.route('/feedbacks')
 router.route('/feedbacks/:id')
   .put(protectAdmin, updateFeedbackStatus)
   .delete(protectAdmin, deleteFeedback);
+
+// Product Reports (user-submitted)
+router.get('/product-reports/count', protectAdmin, getUnreviewedCount);
+router.get('/product-reports', protectAdmin, getProductReports);
+router.put('/product-reports/:id', protectAdmin, updateReportStatus);
+router.delete('/product-reports/:id', protectAdmin, deleteReport);
 
 export default router;

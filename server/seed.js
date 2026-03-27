@@ -5,6 +5,7 @@ import Admin from './models/Admin.js';
 import Supplier from './models/Supplier.js';
 import AdminActivityLog from './models/AdminActivityLog.js';
 import Feedback from './models/Feedback.js';
+import Report from './models/Report.js';
 
 dotenv.config();
 
@@ -50,7 +51,7 @@ const medicines = [
     manufacturer: "NatureLife",
     category: "Vitamins",
     price: 15.00,
-    stockQuantity: 0, // Out of stock
+    stockQuantity: 0,
     expiryDate: new Date("2026-05-20"),
     description: "Immune support supplement.",
     usageInstructions: "Take 1 tablet daily with a meal."
@@ -61,7 +62,7 @@ const medicines = [
     manufacturer: "DiabetesCare",
     category: "Injection",
     price: 45.00,
-    stockQuantity: 5, // Low stock
+    stockQuantity: 5,
     expiryDate: new Date("2024-11-30"),
     description: "Long-acting insulin for blood sugar control.",
     usageInstructions: "Inject subcutaneously once daily."
@@ -105,7 +106,7 @@ const medicines = [
     manufacturer: "NatureLife",
     category: "Vitamins",
     price: 18.50,
-    stockQuantity: 9, // Low stock
+    stockQuantity: 9,
     expiryDate: new Date("2025-11-10"),
     description: "Daily multivitamin to support overall health.",
     usageInstructions: "Take 1 tablet daily."
@@ -138,7 +139,7 @@ const medicines = [
     manufacturer: "BioHealth",
     category: "Tablet",
     price: 14.20,
-    stockQuantity: 0, // Out of stock
+    stockQuantity: 0,
     expiryDate: new Date("2024-10-01"),
     description: "Antibiotic used to treat various bacterial infections.",
     usageInstructions: "Take 1 tablet every 12 hours."
@@ -182,13 +183,13 @@ const medicines = [
     manufacturer: "LifeSaver",
     category: "Injection",
     price: 120.00,
-    stockQuantity: 2, // Low stock
+    stockQuantity: 2,
     expiryDate: new Date("2024-09-10"),
     description: "Used for emergency treatment of severe allergic reactions (anaphylaxis).",
     usageInstructions: "Inject into the outer thigh as directed during a severe allergic reaction."
   },
   {
-    name: "Loradatine 10mg",
+    name: "Loratadine 10mg",
     genericName: "Loratadine",
     manufacturer: "AllergyRelief",
     category: "Tablet",
@@ -226,7 +227,7 @@ const medicines = [
     manufacturer: "VaxCorp",
     category: "Injection",
     price: 25.00,
-    stockQuantity: 0, // Out of stock
+    stockQuantity: 0,
     expiryDate: new Date("2024-08-20"),
     description: "Vaccine used to prevent tetanus.",
     usageInstructions: "Administered by a healthcare professional."
@@ -243,19 +244,20 @@ const seedDB = async () => {
     await Supplier.deleteMany();
     await AdminActivityLog.deleteMany();
     await Feedback.deleteMany();
+    await Report.deleteMany();
 
     console.log('Data Cleared!');
 
-    // Create an Admin Admin User
+    // Create admin WITHOUT email so the first-time setup flow can be tested
     const adminUser = new Admin({
       username: 'admin',
       password: 'password123',
-      email: 'admin@medweb.com',
-      name: 'Super Admin'
+      // No email — triggers the setup flow on first login
     });
     await adminUser.save();
 
-    console.log('Admin user created (username: admin, password: password123, email: admin@medweb.com)');
+    console.log('Admin user created (username: admin, password: password123)');
+    console.log('NOTE: No email set — first login will prompt the email setup flow.');
 
     // Create Suppliers
     const suppliersData = [
@@ -277,10 +279,9 @@ const seedDB = async () => {
     const createdSuppliers = await Supplier.insertMany(suppliersData);
     console.log(`Inserted ${createdSuppliers.length} Suppliers`);
     
-    // Map supplier name to ObjectId
     const supplierMap = createdSuppliers.reduce((acc, curr) => {
-       acc[curr.name] = curr._id;
-       return acc;
+      acc[curr.name] = curr._id;
+      return acc;
     }, {});
 
     const medicinesWithDetails = medicines.map(med => ({
@@ -301,7 +302,7 @@ const seedDB = async () => {
 
     // Create mock feedbacks
     const mockFeedbacks = [];
-    for(let med of insertedMedicines) {
+    for (let med of insertedMedicines) {
       mockFeedbacks.push({
         medicine: med._id,
         userName: "John Doe",
@@ -328,6 +329,60 @@ const seedDB = async () => {
 
     await Feedback.insertMany(mockFeedbacks);
     console.log(`Inserted ${mockFeedbacks.length} Feedbacks`);
+
+    // Create sample product reports
+    const reportReasons = [
+      'Incorrect Information',
+      'Medicine Not Available',
+      'Wrong Price',
+      'Expired Medicine Listed',
+      'Other'
+    ];
+    const sampleReports = [
+      {
+        medicine: insertedMedicines[0]._id,
+        reason: 'Wrong Price',
+        additionalDetails: 'The listed price is ₹5.99 but actual store price is ₹8.50.',
+        reporterName: 'Rahul Sharma',
+        reporterEmail: 'rahul@example.com',
+        status: 'pending'
+      },
+      {
+        medicine: insertedMedicines[1]._id,
+        reason: 'Expired Medicine Listed',
+        additionalDetails: 'This medicine has already expired but is still showing as available.',
+        reporterName: 'Priya Singh',
+        reporterEmail: 'priya@example.com',
+        status: 'reviewed'
+      },
+      {
+        medicine: insertedMedicines[3]._id,
+        reason: 'Medicine Not Available',
+        additionalDetails: 'This item shows in stock but is not available in physical store.',
+        reporterName: '',
+        reporterEmail: '',
+        status: 'pending'
+      },
+      {
+        medicine: insertedMedicines[5]._id,
+        reason: 'Incorrect Information',
+        additionalDetails: 'Usage instructions are incorrect. Should be taken after food.',
+        reporterName: 'Dr. Anand',
+        reporterEmail: 'anand.doc@example.com',
+        status: 'resolved'
+      },
+      {
+        medicine: insertedMedicines[2]._id,
+        reason: 'Other',
+        additionalDetails: 'The generic name listed is wrong for this product.',
+        reporterName: 'Meena Patel',
+        reporterEmail: '',
+        status: 'pending'
+      }
+    ];
+
+    await Report.insertMany(sampleReports);
+    console.log(`Inserted ${sampleReports.length} Sample Reports`);
 
     console.log('Database Seeded Successfully!');
     process.exit();

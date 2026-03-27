@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useSearchParams } from 'react-router-dom';
 import { Filter, X } from 'lucide-react';
+import toast from 'react-hot-toast';
 import apiClient from '../api/apiClient';
 import MedicineCard from '../components/MedicineCard';
 import LoadingSkeleton from '../components/LoadingSkeleton';
@@ -61,6 +62,13 @@ const MedicineListingPage = () => {
     },
     keepPreviousData: true
   });
+
+  // Toast when search has no results
+  useEffect(() => {
+    if (!isLoading && debouncedSearchTerm && data?.medicines?.length === 0) {
+      toast.error(`No medicines found for "${debouncedSearchTerm}"`, { id: 'no-results', duration: 3000 });
+    }
+  }, [isLoading, debouncedSearchTerm, data?.medicines?.length]);
 
   const categories = ['Tablet', 'Syrup', 'Injection', 'Capsule', 'Ointment', 'Drops', 'Vitamins', 'Other'];
 
