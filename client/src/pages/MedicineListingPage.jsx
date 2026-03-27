@@ -175,40 +175,91 @@ const MedicineListingPage = () => {
             </div>
           ) : (
             <>
-              <div className="mb-4 text-sm text-gray-500">
-                Showing {data?.medicines?.length} {data?.total ? `out of ${data.total}` : ''} results
+              <div className="mb-6 flex flex-col sm:flex-row justify-between items-center bg-white p-4 rounded-xl border border-gray-100 gap-4">
+                <div className="text-sm font-medium text-gray-500 order-2 sm:order-1">
+                  Showing <span className="text-gray-900 font-bold">{((page - 1) * 12) + 1}</span> to <span className="text-gray-900 font-bold">{Math.min(page * 12, data?.total || 0)}</span> of <span className="text-gray-900 font-bold">{data?.total || 0}</span> medicines
+                </div>
+                <div className="flex items-center gap-2 order-1 sm:order-2">
+                  <span className="text-xs font-bold text-gray-400 uppercase tracking-widest mr-2">Sort</span>
+                  <select 
+                    value={sort}
+                    onChange={(e) => { setSort(e.target.value); setPage(1); }}
+                    className="text-sm p-2 border border-gray-100 rounded-lg outline-none bg-gray-50 focus:bg-white transition-colors cursor-pointer"
+                  >
+                    <option value="createdAt">Newest Joined</option>
+                    <option value="price-asc">Price: Low to High</option>
+                    <option value="price-desc">Price: High to Low</option>
+                    <option value="name-asc">Name: A-Z</option>
+                    <option value="name-desc">Name: Z-A</option>
+                  </select>
+                </div>
               </div>
+
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
                 {data?.medicines?.map(medicine => (
                   <MedicineCard key={medicine._id} medicine={medicine} />
                 ))}
               </div>
               
-              {/* Pagination (Only show if not searching or if multiple pages exist) */}
+              {/* Enhanced Pagination */}
               {!debouncedSearchTerm && data?.pages > 1 && (
-                <div className="flex justify-center mt-12 gap-2">
+                <div className="flex flex-wrap justify-center items-center mt-12 gap-2">
                   <button 
                     disabled={page === 1}
-                    onClick={() => setPage(p => p - 1)}
-                    className="px-4 py-2 border rounded-md disabled:opacity-50 hover:bg-gray-50"
+                    onClick={() => { setPage(p => p - 1); window.scrollTo({ top: 0, behavior: 'smooth' }); }}
+                    className="px-5 py-2.5 border border-gray-200 rounded-xl text-sm font-bold text-gray-600 disabled:opacity-40 hover:bg-gray-50 hover:border-gray-300 transition-all flex items-center gap-2"
                   >
                     Previous
                   </button>
-                  {[...Array(data.pages)].map((_, i) => (
-                    <button
-                      key={i}
-                      onClick={() => setPage(i + 1)}
-                      className={`w-10 h-10 rounded-md flex items-center justify-center ${
-                        page === i + 1 ? 'bg-primary text-white' : 'border hover:bg-gray-50'
-                      }`}
-                    >
-                      {i + 1}
-                    </button>
-                  ))}
+
+                  <div className="flex items-center gap-1.5 mx-2">
+                    {(() => {
+                      const totalPages = data.pages;
+                      const pages = [];
+                      const delta = 1;
+                      const left = page - delta;
+                      const right = page + delta + 1;
+                      let l;
+
+                      for (let i = 1; i <= totalPages; i++) {
+                        if (i === 1 || i === totalPages || (i >= left && i < right)) {
+                          pages.push(i);
+                        }
+                      }
+
+                      return pages.map((p, index) => {
+                        const content = (
+                          <button
+                            key={p}
+                            onClick={() => { setPage(p); window.scrollTo({ top: 0, behavior: 'smooth' }); }}
+                            className={`w-11 h-11 rounded-xl flex items-center justify-center text-sm font-bold transition-all ${
+                              page === p 
+                                ? 'bg-primary text-white shadow-lg shadow-primary/20 scale-110' 
+                                : 'text-gray-500 hover:bg-gray-100'
+                            }`}
+                          >
+                            {p}
+                          </button>
+                        );
+
+                        let ellipsis = null;
+                        if (l) {
+                          if (p - l === 2) {
+                            ellipsis = <span key={`el-${p}`} className="px-2 text-gray-400 font-bold">...</span>;
+                          } else if (p - l !== 1) {
+                            ellipsis = <span key={`el-${p}`} className="px-2 text-gray-400 font-bold">...</span>;
+                          }
+                        }
+                        l = p;
+                        return ellipsis ? [ellipsis, content] : content;
+                      });
+                    })()}
+                  </div>
+
                   <button 
                     disabled={page === data.pages}
-                    onClick={() => setPage(p => p + 1)}
-                    className="px-4 py-2 border rounded-md disabled:opacity-50 hover:bg-gray-50"
+                    onClick={() => { setPage(p => p + 1); window.scrollTo({ top: 0, behavior: 'smooth' }); }}
+                    className="px-5 py-2.5 border border-gray-200 rounded-xl text-sm font-bold text-gray-600 disabled:opacity-40 hover:bg-gray-50 hover:border-gray-300 transition-all flex items-center gap-2"
                   >
                     Next
                   </button>

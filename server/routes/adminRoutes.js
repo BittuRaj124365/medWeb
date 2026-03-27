@@ -4,6 +4,7 @@ import path from 'path';
 
 import { 
   getDashboardStats,
+  getDashboardGraphs,
   updateCredentials,
   updateProfile,
   getSuppliers,
@@ -40,12 +41,13 @@ const storage = multer.diskStorage({
     cb(null, `profile-${Date.now()}${path.extname(file.originalname)}`);
   }
 });
+
 const upload = multer({ 
   storage,
-  limits: { fileSize: 5000000 },
+  limits: { fileSize: 2 * 1024 * 1024 }, // 2MB limit
   fileFilter(req, file, cb) {
     if(!file.originalname.match(/\.(jpg|jpeg|png)$/)) {
-      return cb(new Error('Please upload an image'));
+      return cb(new Error('Only jpg, jpeg, and png files are allowed!'), false);
     }
     cb(null, true);
   }
@@ -53,8 +55,21 @@ const upload = multer({
 
 // Protected routes
 router.get('/dashboard', protectAdmin, getDashboardStats);
+router.get('/dashboard/graphs', protectAdmin, getDashboardGraphs);
 router.put('/credentials', protectAdmin, updateCredentials);
-router.put('/profile', protectAdmin, upload.single('profilePicture'), updateProfile);
+router.put('/profile', protectAdmin, (req, res, next) => {
+  upload.single('profilePicture')(req, res, (err) => {
+    if (err instanceof multer.MulterError) {
+      if (err.code === 'LIMIT_FILE_SIZE') {
+        return res.status(400).json({ message: 'File size exceeds 2MB limit' });
+      }
+      return res.status(400).json({ message: err.message });
+    } else if (err) {
+      return res.status(400).json({ message: err.message });
+    }
+    next();
+  });
+}, updateProfile);
 router.post('/medicines', protectAdmin, createMedicine);
 router.put('/medicines/:id', protectAdmin, updateMedicine);
 router.delete('/medicines/:id', protectAdmin, deleteMedicine);

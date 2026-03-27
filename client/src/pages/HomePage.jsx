@@ -137,11 +137,42 @@ const HomePage = () => {
 
   const { data: ratingStats, isLoading: isLoadingStats } = useQuery({
     queryKey: ['shopRatingStats'],
-    queryFn: async () => {
-      const res = await apiClient.get('/medicines/shop-ratings');
-      return res.data;
-    }
+    queryFn: async () => (await apiClient.get('/medicines/shop-ratings')).data
   });
+
+  const [reviews, setReviews] = useState([]);
+  const [reviewPage, setReviewPage] = useState(1);
+  const [hasMoreReviews, setHasMoreReviews] = useState(true);
+  const [isLoadingMore, setIsLoadingMore] = useState(false);
+
+  // Initial load
+  useEffect(() => {
+    const fetchInitialReviews = async () => {
+      try {
+        const res = await apiClient.get('/medicines/feedbacks/approved?page=1&limit=3');
+        setReviews(res.data.feedbacks);
+        setHasMoreReviews(res.data.page < res.data.pages);
+      } catch (err) {
+        console.error('Failed to fetch reviews', err);
+      }
+    };
+    fetchInitialReviews();
+  }, []);
+
+  const handleSeeMoreReviews = async () => {
+    setIsLoadingMore(true);
+    try {
+      const nextPage = reviewPage + 1;
+      const res = await apiClient.get(`/medicines/feedbacks/approved?page=${nextPage}&limit=3`);
+      setReviews(prev => [...prev, ...res.data.feedbacks]);
+      setReviewPage(nextPage);
+      setHasMoreReviews(res.data.page < res.data.pages);
+    } catch (err) {
+      toast.error('Failed to load more reviews');
+    } finally {
+      setIsLoadingMore(false);
+    }
+  };
 
   const categories = [
     { name: 'Tablet', icon: <Pill className="w-6 h-6" />, color: 'bg-blue-50 border-blue-100 text-blue-700 hover:bg-blue-100 hover:border-blue-200' },
@@ -270,7 +301,7 @@ const HomePage = () => {
               <p className="text-slate-400 text-lg font-medium m-0">Live inventory from our warehouse cabinets.</p>
             </div>
             <Link to="/medicines" className="flex items-center gap-3 text-slate-900 font-black py-4 px-10 rounded-[28px] bg-slate-100 hover:bg-slate-200 transition-all group">
-              Browse All <ArrowRight className="w-5 h-5 group-hover:translate-x-1.5 transition-transform" />
+              Browse More <ArrowRight className="w-5 h-5 group-hover:translate-x-1.5 transition-transform" />
             </Link>
           </div>
 
@@ -354,10 +385,10 @@ const HomePage = () => {
                 </div>
               </div>
 
-              <div className="lg:col-span-8">
+              <div className="lg:col-span-8 space-y-8">
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-                  {ratingStats.recentReviews.map((review) => (
-                    <div key={review._id} className="bg-white p-6 rounded-[32px] border border-slate-100 shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300 flex flex-col h-full">
+                  {reviews.map((review) => (
+                    <div key={review._id} className="bg-white p-6 rounded-[32px] border border-slate-100 shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300 flex flex-col h-full animate-in fade-in slide-in-from-bottom-4 duration-500">
                       <div className="flex items-start justify-between mb-4">
                         <div>
                           <p className="font-bold text-slate-900">{review.userName}</p>
@@ -377,12 +408,32 @@ const HomePage = () => {
                       </div>
                     </div>
                   ))}
-                  {ratingStats.recentReviews.length === 0 && (
+                  {reviews.length === 0 && (
                      <div className="col-span-full p-12 text-center text-slate-400 font-medium bg-slate-50 rounded-[32px] border border-slate-100">
                         No reviews published yet.
                      </div>
                   )}
                 </div>
+
+                {/* See More Button */}
+                {reviews.length > 0 && (
+                  <div className="flex flex-col items-center gap-4 pt-4">
+                    {hasMoreReviews ? (
+                      <button 
+                        onClick={handleSeeMoreReviews}
+                        disabled={isLoadingMore}
+                        className="px-10 py-4 bg-slate-900 text-white font-bold rounded-2xl hover:bg-black transition-all disabled:opacity-50 flex items-center gap-2"
+                      >
+                        {isLoadingMore ? <span className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" /> : 'See More Reviews'}
+                        {!isLoadingMore && <ChevronRight className="w-5 h-5" />}
+                      </button>
+                    ) : (
+                      <div className="px-8 py-3 bg-slate-50 text-slate-400 text-sm font-bold rounded-xl border border-dashed border-slate-200">
+                        All reviews loaded
+                      </div>
+                    )}
+                  </div>
+                )}
               </div>
             </div>
           </div>

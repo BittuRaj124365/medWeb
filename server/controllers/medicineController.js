@@ -226,3 +226,30 @@ export const getShopRatingStats = async (req, res) => {
     res.status(500).json({ message: 'Server Error', error: error.message });
   }
 };
+
+// @desc    Get all approved feedbacks with pagination
+// @route   GET /api/medicines/feedbacks/approved
+// @access  Public
+export const getApprovedFeedbacks = async (req, res) => {
+  try {
+    const page = Number(req.query.page) || 1;
+    const limit = Number(req.query.limit) || 3;
+    const skip = (page - 1) * limit;
+
+    const count = await Feedback.countDocuments({ approved: true });
+    const feedbacks = await Feedback.find({ approved: true })
+      .populate('medicine', 'name')
+      .sort('-dateSubmitted')
+      .limit(limit)
+      .skip(skip);
+
+    res.json({
+      feedbacks,
+      page,
+      pages: Math.ceil(count / limit),
+      total: count
+    });
+  } catch (error) {
+    res.status(500).json({ message: 'Server Error', error: error.message });
+  }
+};

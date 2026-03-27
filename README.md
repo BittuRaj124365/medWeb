@@ -67,8 +67,8 @@ npm run dev
 ### 4. Admin Access
 To manage the inventory, go to the Admin Login page:
 - URL: `http://localhost:5173/admin`
-- Default Username: `admin`
-- Default Password: `password123`
+<!-- - Default Username: `admin` -->
+<!-- - Default Password: `password123` -->
 *(Note: Use the seed script to create this initial admin account)*
 
 ---

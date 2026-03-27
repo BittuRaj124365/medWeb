@@ -79,14 +79,29 @@ const AdminDashboard = () => {
   const renderAvatar = (size = 'md') => {
     const dim = size === 'lg' ? 'w-16 h-16 text-xl' : 'w-10 h-10 text-sm';
     const border = size === 'lg' ? 'border-4 border-white' : 'border-2 border-white';
+    
     if (adminData?.profilePicture) {
+      // If it starts with http, it's a full URL from the backend. 
+      // Otherwise, we prepend the base URL for historical or relative paths.
       const src = adminData.profilePicture.startsWith('http')
         ? adminData.profilePicture
         : `http://localhost:5000${adminData.profilePicture}`;
-      return <img src={src} alt="Avatar" className={`${dim} rounded-full object-cover ${border} shadow-sm`} />;
+      
+      return (
+        <img 
+          src={src} 
+          alt="Avatar" 
+          className={`${dim} rounded-full object-cover ${border} shadow-sm transition-all duration-300 transform hover:scale-105`} 
+          onError={(e) => {
+            // Fallback if image fails to load
+            e.target.style.display = 'none';
+          }}
+        />
+      );
     }
+    
     return (
-      <div className={`${dim} ${border} rounded-full bg-primary flex items-center justify-center text-white font-bold shadow-sm`}>
+      <div className={`${dim} ${border} rounded-full bg-primary flex items-center justify-center text-white font-bold shadow-sm animate-in fade-in zoom-in duration-300`}>
         {getInitials(adminData?.name || adminData?.username)}
       </div>
     );
@@ -213,7 +228,20 @@ const AccountSettingsModal = ({ initialSection, adminData, setAdminData, onClose
 
   const handleFileChange = (e) => {
     const f = e.target.files[0];
-    if (f) { setFile(f); setPreviewUrl(URL.createObjectURL(f)); }
+    if (f) { 
+      // Validate file type
+      if (!['image/jpeg', 'image/jpg', 'image/png'].includes(f.type)) {
+        toast.error('Only JPG, JPEG, and PNG files are allowed');
+        return;
+      }
+      // Validate file size (2MB)
+      if (f.size > 2 * 1024 * 1024) {
+        toast.error('File size must be less than 2MB');
+        return;
+      }
+      setFile(f); 
+      setPreviewUrl(URL.createObjectURL(f)); 
+    }
   };
 
   // ── Profile mutation ──
@@ -231,7 +259,8 @@ const AccountSettingsModal = ({ initialSection, adminData, setAdminData, onClose
       if (profileForm.name)  fd.append('name',  profileForm.name);
       if (profileForm.email) fd.append('email', profileForm.email);
       if (file) fd.append('profilePicture', file);
-      return apiClient.put('/admin/profile', fd, { headers: { 'Content-Type': 'multipart/form-data' } });
+      // Let the browser set the content type with the boundary
+      return apiClient.put('/admin/profile', fd);
     },
     onSuccess: (res) => {
       toast.success('Profile updated successfully!');
@@ -269,7 +298,7 @@ const AccountSettingsModal = ({ initialSection, adminData, setAdminData, onClose
       if (securityForm.newUsername)     fd.append('newUsername',     securityForm.newUsername);
       if (securityForm.currentPassword) fd.append('currentPassword', securityForm.currentPassword);
       if (securityForm.newPassword)     fd.append('newPassword',     securityForm.newPassword);
-      return apiClient.put('/admin/profile', fd, { headers: { 'Content-Type': 'multipart/form-data' } });
+      return apiClient.put('/admin/profile', fd);
     },
     onSuccess: (res) => {
       toast.success('Security settings updated!');

@@ -3,6 +3,7 @@ import Medicine from '../models/Medicine.js';
 import Supplier from '../models/Supplier.js';
 import AdminActivityLog from '../models/AdminActivityLog.js';
 import Feedback from '../models/Feedback.js';
+import Report from '../models/Report.js';
 import jwt from 'jsonwebtoken';
 
 // Auth logic moved to authController.js
@@ -83,8 +84,10 @@ export const updateProfile = async (req, res) => {
     
     // Construct local path URL if file uploaded
     if (req.file) {
-      // Create a URL pointing to the static uploads folder
-      admin.profilePicture = `/uploads/${req.file.filename}`;
+      // Return full URL so frontend can reflect immediately
+      const protocol = req.protocol;
+      const host = req.get('host');
+      admin.profilePicture = `${protocol}://${host}/uploads/${req.file.filename}`;
     }
 
     await admin.save();
@@ -206,10 +209,18 @@ export const getReports = async (req, res) => {
     }).sort({ expiryDate: 1 });
 
     const totalFeedbacks = await Feedback.countDocuments();
+    const totalReports = await Report.countDocuments();
+    const totalSuppliers = await Supplier.countDocuments();
 
     res.json({
-      stockReport: { totalMedicines, lowStockCount: lowStockMedicines.length, outOfStockCount: outOfStock },
+      stockReport: { 
+        totalMedicines, 
+        lowStockCount: lowStockMedicines.length, 
+        outOfStockCount: outOfStock 
+      },
       totalFeedbacks,
+      totalReports,
+      totalSuppliers,
       lowStock: lowStockMedicines,
       mostSearched,
       mostViewed,
@@ -295,6 +306,73 @@ export const deleteFeedback = async (req, res) => {
        res.status(404).json({ message: 'Feedback not found' });
     }
   } catch (error) {
+    res.status(500).json({ message: 'Server Error', error: error.message });
+  }
+};
+
+// @desc    Get data for dashboard graphs
+// @route   GET /api/admin/dashboard/graphs
+// @access  Private (Admin)
+export const getDashboardGraphs = async (req, res) => {
+  try {
+    // 1. Medicine Stock Overview (by category)
+    const stockByCategory = await Medicine.aggregate([
+      { $group: { _id: '$category', count: { $sum: '$stockQuantity' } } },
+      { $project: { category: '$_id', count: 1, _id: 0 } }
+    ]);
+
+    // 2. Most Viewed Medicines (Top 10)
+    const mostViewed = await Medicine.find().sort({ viewCount: -1 }).limit(10).select('name viewCount');
+
+    // 3. Most Searched Medicines (Top 10)
+    const mostSearched = await Medicine.find().sort({ searchCount: -1 }).limit(10).select('name searchCount');
+
+    // 4. Feedback Ratings Distribution
+    const ratingsDistribution = await Feedback.aggregate([
+      { $match: { approved: true } },
+      { $group: { _id: '$rating', count: { $sum: 1 } } },
+      { $sort: { _id: 1 } }
+    ]);
+    const ratingsData = [1, 2, 3, 4, 5].map(star => ({
+      star,
+      count: ratingsDistribution.find(r => r._id === star)?.count || 0
+    }));
+
+    // 5. Reports Overview (by status)
+    const reportsStatus = await Report.aggregate([
+      { $group: { _id: '$status', count: { $sum: 1 } } }
+    ]);
+
+    // 6. Monthly Activity (last 6 months)
+    const sixMonthsAgo = new Date();
+    sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 6);
+    const monthlyActivity = await Medicine.aggregate([
+      { $match: { createdAt: { $gte: sixMonthsAgo } } },
+      {
+        $group: {
+          _id: { month: { $month: '$createdAt' }, year: { $year: '$createdAt' } },
+          count: { $sum: 1 }
+        }
+      },
+      { $sort: { '_id.year': 1, '_id.month': 1 } }
+    ]);
+
+    const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+    const activityData = monthlyActivity.map(item => ({
+      month: `${monthNames[item._id.month - 1]} ${item._id.year}`,
+      count: item.count
+    }));
+
+    res.json({
+      stockByCategory,
+      mostViewed,
+      mostSearched,
+      ratingsData,
+      reportsStatus: reportsStatus.map(r => ({ status: r._id, count: r.count })),
+      monthlyActivity: activityData
+    });
+  } catch (error) {
+    console.error('getDashboardGraphs error:', error);
     res.status(500).json({ message: 'Server Error', error: error.message });
   }
 };

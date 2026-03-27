@@ -7,6 +7,7 @@ import rateLimit from 'express-rate-limit';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import nodemailer from 'nodemailer';
+import fs from 'fs';
 
 import medicineRoutes from './routes/medicineRoutes.js';
 import adminRoutes from './routes/adminRoutes.js';
@@ -43,6 +44,14 @@ const MONGO_URI = process.env.MONGO_URI || 'mongodb://127.0.0.1:27017/medweb';
 mongoose.connect(MONGO_URI)
   .then(() => {
     console.log('✅ MongoDB Connected');
+    
+    // Ensure uploads directory exists
+    const uploadsDir = path.join(__dirname, 'uploads');
+    if (!fs.existsSync(uploadsDir)) {
+      fs.mkdirSync(uploadsDir);
+      console.log('✅ Created uploads directory');
+    }
+
     app.listen(PORT, () => console.log(`✅ Server running on http://localhost:${PORT}`));
 
     // Test email configuration
