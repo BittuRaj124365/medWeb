@@ -5,18 +5,19 @@ import {
   Search, ArrowRight, Activity, Pill, HeartPulse, ShieldCheck,
   Clock, MapPin, Phone, Mail, Star, Users, Award, TrendingUp, Package, Zap,
   CheckCircle2, ChevronRight, HelpCircle, BookOpen, Stethoscope, X, MessageCircle,
-  Plus, Minus
+  Plus, Minus, Sparkles, ShieldAlert, Heart
 } from 'lucide-react';
 import apiClient from '../api/apiClient';
 import MedicineCard from '../components/MedicineCard';
 import LoadingSkeleton from '../components/LoadingSkeleton';
+import toast from 'react-hot-toast';
 
-// Clean iframe-based map — no CSS dependencies, no crashes
+// Modern Iframe-based map
 const StoreMap = () => (
   <iframe
     src="https://www.openstreetmap.org/export/embed.html?bbox=77.1890%2C28.6039%2C77.2290%2C28.6239&layer=mapnik&marker=28.6139%2C77.2090"
-    className="w-full h-full"
-    style={{ minHeight: '400px', border: 'none' }}
+    className="w-full h-full rounded-[40px]"
+    style={{ minHeight: '500px', border: 'none' }}
     title="MedShop Store Location — New Delhi"
     loading="lazy"
     allowFullScreen
@@ -54,38 +55,42 @@ const BlogModal = ({ isOpen, onClose }) => {
   ];
 
   return (
-    <div className="fixed inset-0 z-[60] flex items-center justify-center p-4">
-      <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose} />
-      <div className="relative bg-white w-full max-w-4xl max-h-[85vh] overflow-y-auto rounded-[40px] shadow-2xl p-8 md:p-12 animate-in zoom-in-95 duration-300">
-        <button onClick={onClose} className="absolute top-8 right-8 p-3 bg-gray-100 hover:bg-gray-200 rounded-full transition-colors">
-          <X className="w-6 h-6 text-gray-600" />
+    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+      <div className="absolute inset-0 bg-gray-900/60 backdrop-blur-md animate-in fade-in duration-500" onClick={onClose} />
+      <div className="relative bg-white w-full max-w-4xl max-h-[85vh] overflow-y-auto rounded-[48px] shadow-[0_0_100px_rgba(0,0,0,0.2)] p-8 md:p-16 animate-in zoom-in-95 duration-500 border border-white/20">
+        <button onClick={onClose} className="absolute top-10 right-10 p-4 bg-gray-50 hover:bg-gray-100 rounded-2xl transition-all duration-300">
+          <X className="w-6 h-6 text-gray-400" />
         </button>
 
-        <div className="mb-12">
-          <h2 className="text-4xl font-black text-gray-900 mb-2">Expert Health Blogs</h2>
-          <p className="text-gray-500">Curated insights from our panel of medical professionals.</p>
+        <div className="mb-14 text-center">
+            <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-primary/5 border border-primary/10 text-primary text-[10px] font-black uppercase tracking-widest mb-6">
+                <Sparkles className="w-3.5 h-3.5" /> Healthcare Insights
+            </div>
+            <h2 className="text-4xl md:text-5xl font-black text-gray-900 mb-4 tracking-tight leading-tight">Expert Health Hub</h2>
+            <p className="text-gray-500 font-medium max-w-lg mx-auto leading-relaxed">Curated knowledge from our panel of board-certified medical professionals.</p>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-10">
           {blogs.map(blog => (
             <div key={blog.id} className="group cursor-pointer">
-              <div className="relative h-48 rounded-3xl overflow-hidden mb-5">
-                <img src={blog.image} alt={blog.title} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" />
-                <div className="absolute top-4 left-4 bg-white/90 backdrop-blur px-3 py-1 rounded-full text-[10px] font-black uppercase text-primary tracking-wider">Education</div>
+              <div className="relative h-60 rounded-[32px] overflow-hidden mb-6 shadow-xl group-hover:shadow-primary/20 transition-all duration-500">
+                <img src={blog.image} alt={blog.title} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" />
+                <div className="absolute top-4 left-4 glass px-4 py-1.5 rounded-full text-[10px] font-black uppercase text-primary tracking-widest">Education</div>
               </div>
-              <p className="text-xs font-bold text-gray-400 mb-2">{blog.date} • {blog.author}</p>
-              <h4 className="text-xl font-bold text-gray-900 mb-3 leading-tight group-hover:text-primary transition-colors">{blog.title}</h4>
-              <p className="text-sm text-gray-500 line-clamp-3 leading-relaxed">{blog.content}</p>
+              <p className="text-[10px] font-black text-gray-400 mb-2 uppercase tracking-[0.2em]">{blog.date} • {blog.author}</p>
+              <h4 className="text-xl font-bold text-gray-900 mb-4 leading-[1.3] group-hover:text-primary transition-colors">{blog.title}</h4>
+              <p className="text-sm text-gray-500 line-clamp-3 leading-relaxed font-medium">{blog.content}</p>
             </div>
           ))}
         </div>
 
-        <div className="mt-16 p-8 bg-primary/5 rounded-[32px] border border-primary/10 text-center">
-          <h5 className="font-bold text-gray-900 text-lg mb-2">Want to stay updated?</h5>
-          <p className="text-gray-600 text-sm mb-6 font-medium">Get health tips and medicine alerts directly in your inbox.</p>
-          <div className="max-w-md mx-auto flex gap-3">
-            <input type="email" placeholder="Your email address" className="flex-1 px-6 py-3 rounded-2xl border border-gray-200 outline-none focus:border-primary transition-all" />
-            <button className="px-6 py-3 bg-primary text-white font-bold rounded-2xl hover:bg-teal-700 transition-all">Join</button>
+        <div className="mt-20 p-12 bg-gray-50 rounded-[48px] border border-gray-100 text-center relative overflow-hidden group">
+          <div className="absolute top-0 right-0 w-64 h-64 bg-primary/5 rounded-full blur-[80px] -translate-x-1/2 -translate-y-1/2 group-hover:scale-125 transition-transform duration-1000" />
+          <h5 className="font-black text-gray-900 text-2xl mb-3 relative z-10">Stay Informed & Healthy</h5>
+          <p className="text-gray-500 text-sm mb-8 font-medium relative z-10 max-w-sm mx-auto">Get health tips and medicine availability alerts directly in your inbox.</p>
+          <div className="max-w-md mx-auto flex flex-col sm:flex-row gap-4 relative z-10">
+            <input type="email" placeholder="Enter your email" className="flex-1 px-8 py-4 rounded-2xl bg-white border border-gray-100 outline-none focus:ring-4 focus:ring-primary/5 focus:border-primary/30 transition-all font-medium" />
+            <button className="px-10 py-4 bg-primary text-white font-black text-xs uppercase tracking-widest rounded-2xl hover:bg-teal-700 shadow-xl shadow-primary/20 transition-all active:scale-95">Subscribe</button>
           </div>
         </div>
       </div>
@@ -95,20 +100,20 @@ const BlogModal = ({ isOpen, onClose }) => {
 
 const faqs = [
   {
-    q: "Are the medicines genuine?",
-    a: "Yes, every medicine listed is verified for authenticity and sourced from licensed pharmaceutical distributors."
+    q: "Are the medicines listed genuine?",
+    a: "Every single medication in our inventory is 100% genuine, verified for authenticity, and sourced directly from licensed global pharmaceutical distributors and manufacturers."
   },
   {
-    q: "How often is the stock updated?",
-    a: "Our inventory is updated in real-time. What you see is exactly what's available in our physical warehouse."
+    q: "How accurate is the stock availability?",
+    a: "Our inventory system is synchronized in real-time. The 'In Stock' status you see on your screen perfectly reflects our physical warehouse cabinets at this very moment."
   },
   {
-    q: "Do you deliver to my location?",
-    a: "No, we do not provide delivery service."
+    q: "Do you offer door-step delivery?",
+    a: "Currently, we operate as a real-time inventory viewer. Customers can check availability online and visit our physical store in Connaught Place for purchases."
   },
   {
-    q: "Can I get a pharmacist consultation?",
-    a: "Absolutely! Our chief pharmacist, Dr. Ananya Sharma, and her team are available for consultations during service hours."
+    q: "Can I receive a pharmacist consultation?",
+    a: "Absolutely. Our expert medical team, led by Dr. Ananya Sharma, is available for in-person consultations during all store operational hours to guide your health choices."
   }
 ];
 
@@ -129,7 +134,6 @@ const HomePage = () => {
   const { data: topRatedData, isLoading: isLoadingTop } = useQuery({
     queryKey: ['medicines', { sort: '-rating.average', limit: 4 }],
     queryFn: async () => {
-      // Use negative sorting to get highest rated first
       const res = await apiClient.get('/medicines?sort=-rating.average&limit=4');
       return res.data;
     }
@@ -145,13 +149,14 @@ const HomePage = () => {
   const [hasMoreReviews, setHasMoreReviews] = useState(true);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
 
-  // Initial load
   useEffect(() => {
     const fetchInitialReviews = async () => {
       try {
         const res = await apiClient.get('/medicines/feedbacks/approved?page=1&limit=3');
-        setReviews(res.data.feedbacks);
-        setHasMoreReviews(res.data.page < res.data.pages);
+        if (res.data?.feedbacks) {
+          setReviews(res.data.feedbacks);
+          setHasMoreReviews(res.data.page < res.data.pages);
+        }
       } catch (err) {
         console.error('Failed to fetch reviews', err);
       }
@@ -160,13 +165,18 @@ const HomePage = () => {
   }, []);
 
   const handleSeeMoreReviews = async () => {
+    if (isLoadingMore || !hasMoreReviews) return;
     setIsLoadingMore(true);
     try {
       const nextPage = reviewPage + 1;
       const res = await apiClient.get(`/medicines/feedbacks/approved?page=${nextPage}&limit=3`);
-      setReviews(prev => [...prev, ...res.data.feedbacks]);
-      setReviewPage(nextPage);
-      setHasMoreReviews(res.data.page < res.data.pages);
+      if (res.data?.feedbacks) {
+        setReviews(prev => [...prev, ...res.data.feedbacks]);
+        setReviewPage(nextPage);
+        setHasMoreReviews(res.data.page < res.data.pages);
+      } else {
+        setHasMoreReviews(false);
+      }
     } catch (err) {
       toast.error('Failed to load more reviews');
     } finally {
@@ -175,12 +185,12 @@ const HomePage = () => {
   };
 
   const categories = [
-    { name: 'Tablet', icon: <Pill className="w-6 h-6" />, color: 'bg-blue-50 border-blue-100 text-blue-700 hover:bg-blue-100 hover:border-blue-200' },
-    { name: 'Syrup', icon: <Activity className="w-6 h-6" />, color: 'bg-purple-50 border-purple-100 text-purple-700 hover:bg-purple-100 hover:border-purple-200' },
-    { name: 'Injection', icon: <HeartPulse className="w-6 h-6" />, color: 'bg-rose-50 border-rose-100 text-rose-700 hover:bg-rose-100 hover:border-rose-200' },
-    { name: 'Capsule', icon: <Pill className="w-6 h-6" />, color: 'bg-amber-50 border-amber-100 text-amber-700 hover:bg-amber-100 hover:border-amber-200' },
-    { name: 'Vitamins', icon: <Stethoscope className="w-6 h-6" />, color: 'bg-emerald-50 border-emerald-100 text-emerald-700 hover:bg-emerald-100 hover:border-emerald-200' },
-    { name: 'Others', icon: <Package className="w-6 h-6" />, color: 'bg-gray-50 border-gray-100 text-gray-700 hover:bg-gray-100 hover:border-gray-200' },
+    { name: 'Tablet', icon: <Pill className="w-8 h-8" />, color: 'from-blue-500 to-indigo-600', shadow: 'shadow-blue-500/20' },
+    { name: 'Syrup', icon: <Activity className="w-8 h-8" />, color: 'from-purple-500 to-violet-600', shadow: 'shadow-purple-500/20' },
+    { name: 'Injection', icon: <HeartPulse className="w-8 h-8" />, color: 'from-rose-500 to-pink-600', shadow: 'shadow-rose-500/20' },
+    { name: 'Capsule', icon: <Pill className="w-8 h-8 rotate-45" />, color: 'from-amber-500 to-orange-600', shadow: 'shadow-amber-500/20' },
+    { name: 'Vitamins', icon: <Stethoscope className="w-8 h-8" />, color: 'from-emerald-500 to-teal-600', shadow: 'shadow-emerald-500/20' },
+    { name: 'Others', icon: <Package className="w-8 h-8" />, color: 'from-slate-500 to-gray-600', shadow: 'shadow-slate-500/20' },
   ];
 
   const handleSearch = (e) => {
@@ -194,72 +204,114 @@ const HomePage = () => {
     <div className="bg-white">
       <BlogModal isOpen={isBlogOpen} onClose={() => setIsBlogOpen(false)} />
 
-      {/* ── MINIMALISTIC SOFT HERO ── */}
-      <section className="relative pt-24 pb-28 overflow-hidden bg-slate-50/50">
-        <div className="absolute top-0 right-0 w-[800px] h-[800px] bg-teal-300/10 rounded-full blur-[160px] -z-10 translate-x-1/2 -translate-y-1/2" />
-        <div className="absolute bottom-0 left-0 w-[600px] h-[600px] bg-blue-300/10 rounded-full blur-[140px] -z-10 -translate-x-1/2 translate-y-1/2" />
+      {/* ── PREMIUM GLASS HERO ── */}
+      <section className="relative min-h-[90vh] flex items-center pt-20 pb-20 overflow-hidden">
+        {/* Background Elements */}
+        <div className="absolute top-0 right-0 w-[1000px] h-[1000px] bg-primary/10 rounded-full blur-[160px] -z-10 translate-x-1/2 -translate-y-1/2 animate-pulse" />
+        <div className="absolute bottom-0 left-0 w-[800px] h-[800px] bg-accent/5 rounded-full blur-[140px] -z-10 -translate-x-1/2 translate-y-1/2" />
+        <div className="absolute top-1/2 left-1/4 w-32 h-32 bg-primary/20 rounded-full blur-[60px] animate-float" />
 
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex flex-col lg:flex-row items-center gap-20">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 w-full">
+          <div className="flex flex-col lg:flex-row items-center gap-16 lg:gap-24">
 
-            {/* Hero Text */}
-            <div className="w-full lg:w-1/2 space-y-10 text-center lg:text-left animate-in fade-in slide-in-from-left-8 duration-1000">
-              <div className="inline-flex items-center gap-2.5 px-5 py-2 rounded-full bg-white border border-gray-100 shadow-sm text-gray-500 text-xs font-black uppercase tracking-[0.2em]">
-                <span className="flex h-2 w-2 rounded-full bg-primary animate-pulse"></span>
-                Trusted By Over 2,400+ Patients
+            {/* Content Column */}
+            <div className="w-full lg:w-[55%] space-y-12 animate-in fade-in slide-in-from-left-12 duration-1000">
+              <div className="space-y-6">
+                <div className="inline-flex items-center gap-2.5 px-6 py-2 rounded-full bg-white border border-gray-100 shadow-premium text-primary text-xs font-black uppercase tracking-[0.2em] animate-in zoom-in duration-700">
+                  <span className="flex h-2.5 w-2.5 rounded-full bg-primary animate-pulse"></span>
+                  Verified Medical Inventory
+                </div>
+
+                <h1 className="text-6xl md:text-[6.5rem] font-black text-gray-900 leading-[0.9] tracking-[-0.04em]">
+                  Health <br />
+                  <span className="text-transparent bg-clip-text bg-gradient-to-r from-primary via-teal-500 to-accent">Better Choice.</span>
+                </h1>
+
+                <p className="text-xl text-gray-500 max-w-xl leading-relaxed font-semibold">
+                  Access clinical-grade medical supplies with real-time availability. We bridge the gap between digital convenience and pharmaceutical integrity.
+                </p>
               </div>
 
-              <h1 className="text-6xl lg:text-[5.5rem] font-black text-slate-900 leading-[1] tracking-[-0.03em]">
-                Health <br />
-                <span className="text-transparent bg-clip-text bg-gradient-to-r from-primary to-teal-400">Better Choice.</span>
-              </h1>
-
-              <p className="text-lg text-slate-500 max-w-xl leading-relaxed font-medium">
-                We simplify medical inventory access. Discover genuine medicines with real-time stock updates from your neighborhood pharmacy.
-              </p>
-
-              {/* Enhanced Search Box */}
-              <form onSubmit={handleSearch} className="relative max-w-xl group pt-4">
+              {/* Large Search Box */}
+              <form onSubmit={handleSearch} className="relative max-w-2xl group pt-2">
+                <div className="absolute -inset-4 bg-primary/5 rounded-[48px] blur-2xl opacity-0 group-focus-within:opacity-100 transition-opacity duration-500" />
                 <div className="relative">
-                  <Search className="absolute left-6 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-300 transition-colors group-focus-within:text-primary" />
+                  <Search className="absolute left-8 top-1/2 -translate-y-1/2 w-6 h-6 text-gray-300 group-focus-within:text-primary transition-colors" />
                   <input
                     type="text"
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
-                    placeholder="Search generic or brand name..."
-                    className="w-full pl-16 pr-36 py-6 bg-white border border-gray-100 rounded-[32px] text-lg shadow-2xl shadow-slate-200/40 outline-none focus:border-primary/30 transition-all placeholder:text-gray-300"
+                    placeholder="Search by medicine or generic name..."
+                    className="w-full pl-20 pr-44 py-8 bg-white border border-gray-100 rounded-[40px] text-xl shadow-premium outline-none focus:border-primary/20 transition-all font-bold placeholder:text-gray-200"
                   />
                   <button
                     type="submit"
-                    className="absolute right-3 top-3 bottom-3 px-10 bg-slate-900 text-white font-bold rounded-[24px] hover:bg-black shadow-xl shadow-slate-400/20 transition-all active:scale-95 flex items-center gap-2"
+                    className="absolute right-4 top-4 bottom-4 px-12 bg-gray-900 text-white font-black text-xs uppercase tracking-widest rounded-[32px] hover:bg-primary shadow-2xl shadow-gray-400/20 transition-all active:scale-95 flex items-center gap-3"
                   >
                     Search
+                    <ArrowRight className="w-4 h-4" />
                   </button>
                 </div>
               </form>
+
+              {/* Trust Indicators */}
+              <div className="flex flex-wrap items-center gap-10 pt-4">
+                <div className="flex items-center gap-3">
+                  <div className="w-12 h-12 rounded-2xl bg-primary/10 flex items-center justify-center text-primary">
+                    <ShieldCheck className="w-6 h-6" />
+                  </div>
+                  <div>
+                    <div className="text-sm font-black text-gray-900 uppercase">100% Genuine</div>
+                    <div className="text-[10px] font-bold text-gray-400">Verified Sourcing</div>
+                  </div>
+                </div>
+                <div className="flex items-center gap-3">
+                  <div className="w-12 h-12 rounded-2xl bg-accent/10 flex items-center justify-center text-accent">
+                    <Clock className="w-6 h-6" />
+                  </div>
+                  <div>
+                    <div className="text-sm font-black text-gray-900 uppercase">Real-Time</div>
+                    <div className="text-[10px] font-bold text-gray-400">Stock Syncing</div>
+                  </div>
+                </div>
+              </div>
             </div>
 
-            {/* Hero Visual - Softer Tone */}
-            <div className="w-full lg:w-1/2 animate-in fade-in slide-in-from-right-8 duration-1000 delay-200">
+            {/* Visual Column */}
+            <div className="w-full lg:w-[45%] relative animate-in fade-in slide-in-from-right-12 duration-1000 delay-200 px-4">
               <div className="relative group">
-                <div className="absolute -inset-10 bg-teal-400/5 rounded-full blur-[100px] scale-150 -z-10 group-hover:scale-110 transition-transform duration-1000" />
-                <div className="relative rounded-[56px] overflow-hidden shadow-2xl border-4 border-white">
+                {/* Decorative Shapes */}
+                <div className="absolute -inset-10 bg-gradient-to-tr from-primary/10 to-accent/10 rounded-[80px] blur-[100px] -z-10 animate-pulse" />
+                <div className="absolute -top-10 -right-10 w-40 h-40 bg-accent/10 rounded-full blur-3xl animate-float-delayed" />
+                
+                {/* Image Frame */}
+                <div className="relative rounded-[70px] overflow-hidden shadow-premium border-[12px] border-white/50 backdrop-blur-sm transform hover:scale-[1.02] transition-transform duration-700">
                   <img
-                    src="https://images.unsplash.com/photo-1579684385127-1ef15d508118?auto=format&fit=crop&q=80&w=800"
-                    alt="Clean healthcare set"
-                    className="w-full aspect-[5/4] object-cover hover:scale-105 transition-transform duration-1000"
+                    src="https://images.unsplash.com/photo-1579684385127-1ef15d508118?auto=format&fit=crop&q=80&w=1000"
+                    alt="Healthcare Innovation"
+                    className="w-full aspect-[4/5] object-cover transition-transform duration-1000 group-hover:scale-110"
                   />
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-700" />
                 </div>
-                {/* Visual Badges */}
-                <div className="absolute -left-8 top-12 bg-white/90 backdrop-blur-xl p-6 rounded-[32px] shadow-2xl border border-gray-100 animate-float">
-                  <Star className="w-8 h-8 text-amber-400 fill-amber-400 mb-2" />
-                  <div className="text-2xl font-black text-gray-900 leading-none">4.9/5</div>
-                  <div className="text-[10px] font-black uppercase tracking-widest text-gray-400 mt-1">Rating</div>
+
+                {/* Floating Insight Cards */}
+                <div className="absolute -left-12 top-20 glass p-8 rounded-[40px] border border-white/40 shadow-2xl animate-float group-hover:translate-x-4 transition-transform duration-700">
+                    <div className="flex items-center gap-3 mb-3">
+                        <div className="flex -space-x-3">
+                            {[1,2,3].map(i => <img key={i} src={`https://i.pravatar.cc/100?u=user${i}`} className="w-10 h-10 rounded-full border-4 border-white object-cover" />)}
+                        </div>
+                        <div className="p-2 bg-amber-50 rounded-xl text-amber-500">
+                            <Star className="w-5 h-5 fill-amber-500" />
+                        </div>
+                    </div>
+                  <div className="text-2xl font-black text-gray-900 leading-none">4.9 / 5</div>
+                  <div className="text-[10px] font-black uppercase tracking-[0.2em] text-gray-400 mt-2">Overall Quality</div>
                 </div>
-                <div className="absolute -right-6 bottom-10 bg-primary p-6 rounded-[32px] shadow-2xl border-4 border-white animate-float-delayed">
+
+                <div className="absolute -right-10 bottom-24 bg-primary p-8 rounded-[48px] shadow-2xl border-[10px] border-white/80 animate-float-delayed group-hover:-translate-x-4 transition-transform duration-700">
                   <div className="text-white">
-                    <div className="text-2xl font-black leading-none">100%</div>
-                    <div className="text-[10px] font-black uppercase tracking-widest mt-1 opacity-70">Authentic</div>
+                    <div className="text-4xl font-black leading-none mb-1">10k+</div>
+                    <div className="text-[11px] font-black uppercase tracking-widest opacity-80">Products Listed</div>
                   </div>
                 </div>
               </div>
@@ -268,169 +320,220 @@ const HomePage = () => {
         </div>
       </section>
 
-      {/* ── RESTORED CATEGORY BUTTONS ── */}
-      <section className="py-20 border-b border-gray-50">
+      {/* ── HIGH-IMPACT STATS BAR ── */}
+      <section className="py-12 bg-white relative z-10">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center mb-12">
-            <h3 className="text-2xl font-black text-slate-900 mb-2">Shop by Category</h3>
-            <p className="text-slate-500 font-medium">Quickly filter medicines by their form and type.</p>
+            <div className="glass rounded-[50px] p-2 flex flex-col md:flex-row items-stretch border-white animate-in slide-in-from-bottom-12 duration-1000">
+                {[
+                    { label: 'Licensed Stores', value: '24+', icon: <MapPin className="w-6 h-6" /> },
+                    { label: 'Happy Patients', value: '5K+', icon: <Heart className="w-6 h-6" /> },
+                    { label: 'Available Medicines', value: '18K+', icon: <Pill className="w-6 h-6" /> },
+                    { label: 'Verified Experts', value: '15+', icon: <ShieldAlert className="w-6 h-6" /> }
+                ].map((stat, i) => (
+                    <div key={i} className={`flex-1 flex items-center justify-center gap-6 px-10 py-8 ${i < 3 ? 'md:border-r border-gray-100' : ''}`}>
+                        <div className="p-4 bg-gray-50 rounded-2xl text-primary transform group-hover:rotate-12 transition-transform">
+                            {stat.icon}
+                        </div>
+                        <div className="flex flex-col">
+                            <span className="text-3xl font-black text-gray-900 leading-none mb-1">{stat.value}</span>
+                            <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest leading-none">{stat.label}</span>
+                        </div>
+                    </div>
+                ))}
+            </div>
+        </div>
+      </section>
+
+      {/* ── MODERN CATEGORIES GRID ── */}
+      <section className="py-28 overflow-hidden">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex flex-col md:flex-row justify-between items-end gap-10 mb-20 px-4">
+            <div className="space-y-4">
+               <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-accent/5 border border-accent/10 text-accent text-[10px] font-black uppercase tracking-widest">
+                  <Package className="w-4 h-4" /> Comprehensive Catalog
+               </div>
+               <h2 className="text-5xl font-black text-gray-900 tracking-tight leading-tight">Shop by Category</h2>
+               <p className="text-gray-500 font-medium max-w-lg leading-relaxed">Instantly filter your search by clinical category and therapeutic form.</p>
+            </div>
+            <Link to="/medicines" className="group flex items-center gap-3 px-8 py-4 bg-gray-50 hover:bg-primary hover:text-white rounded-3xl font-black text-xs uppercase tracking-widest border border-gray-100 transition-all duration-300 active:scale-95">
+               View Full Directory <ChevronRight className="w-4 h-4 group-hover:translate-x-1" />
+            </Link>
           </div>
-          <div className="grid grid-cols-2 lg:grid-cols-6 gap-4 sm:gap-6">
+
+          <div className="grid grid-cols-2 lg:grid-cols-6 gap-6 px-4">
             {categories.map((cat) => (
               <button
                 key={cat.name}
                 onClick={() => navigate(`/medicines?category=${cat.name}`)}
-                className={`flex flex-col items-center justify-center gap-4 p-8 rounded-[36px] border transition-all hover:shadow-xl hover:-translate-y-2 group ${cat.color}`}
+                className="group flex flex-col items-center justify-center text-center space-y-6"
               >
-                <div className="p-4 bg-white rounded-2xl shadow-sm group-hover:scale-110 transition-transform duration-300">
-                  {cat.icon}
+                <div className={`w-full aspect-square bg-gradient-to-br ${cat.color} rounded-[48px] ${cat.shadow} flex items-center justify-center p-8 transition-all duration-500 group-hover:-translate-y-4 group-hover:rotate-6 shadow-2xl relative`}>
+                    <div className="absolute inset-4 border-2 border-white/20 rounded-[36px]" />
+                    <div className="text-white transform group-hover:scale-125 transition-transform duration-500 relative z-10">
+                        {cat.icon}
+                    </div>
                 </div>
-                <span className="font-bold tracking-tight">{cat.name}</span>
+                <div className="space-y-1">
+                    <span className="block font-black text-gray-900 text-lg group-hover:text-primary transition-colors">{cat.name}</span>
+                    <span className="block text-[10px] font-black text-gray-400 uppercase tracking-widest opacity-0 group-hover:opacity-100 transition-all">Browse Form</span>
+                </div>
               </button>
             ))}
           </div>
         </div>
       </section>
 
-      {/* ── INVENTORY GRID ── */}
-      <section className="py-24 animate-in fade-in duration-700">
+      {/* ── FEATURED INVENTORY ── */}
+      <section className="py-28 bg-gray-50/50 relative">
+        <div className="absolute top-1/2 left-0 w-64 h-64 bg-primary/5 rounded-full blur-[100px] -translate-x-1/2" />
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex flex-col md:flex-row justify-between items-end gap-6 mb-16">
-            <div className="space-y-3 prose">
-              <h2 className="text-4xl font-black text-slate-900 tracking-tight m-0">Recently Stocked</h2>
-              <p className="text-slate-400 text-lg font-medium m-0">Live inventory from our warehouse cabinets.</p>
+          <div className="flex flex-col md:flex-row justify-between items-end gap-10 mb-20 px-4">
+            <div className="space-y-4">
+               <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-emerald-50 border border-emerald-100 text-emerald-600 text-[10px] font-black uppercase tracking-widest">
+                  <Activity className="w-4 h-4" /> Live Updates
+               </div>
+               <h2 className="text-5xl font-black text-gray-900 tracking-tight leading-tight">Recently Stocked</h2>
+               <p className="text-gray-500 font-medium max-w-lg leading-relaxed">Direct synchronization with our central warehouse terminal.</p>
             </div>
-            <Link to="/medicines" className="flex items-center gap-3 text-slate-900 font-black py-4 px-10 rounded-[28px] bg-slate-100 hover:bg-slate-200 transition-all group">
-              Browse More <ArrowRight className="w-5 h-5 group-hover:translate-x-1.5 transition-transform" />
+            <Link to="/medicines" className="group flex items-center gap-4 text-gray-900 px-10 py-5 bg-white shadow-premium hover:shadow-2xl rounded-[32px] font-black text-xs uppercase tracking-[0.2em] transition-all active:scale-95 border border-gray-100">
+              Browse More <ArrowRight className="w-5 h-5 text-primary transition-transform group-hover:translate-x-2" />
             </Link>
           </div>
 
           {isLoading ? (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-10 px-4">
               {[...Array(4)].map((_, i) => <LoadingSkeleton key={i} />)}
             </div>
           ) : (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
-              {data?.medicines?.map(medicine => (
-                <MedicineCard key={medicine._id} medicine={medicine} />
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-10 px-4">
+              {data?.medicines?.map((medicine, idx) => (
+                <div key={medicine._id} className="animate-in fade-in slide-in-from-bottom-12 duration-700" style={{ animationDelay: `${idx * 100}ms` }}>
+                    <MedicineCard medicine={medicine} />
+                </div>
               ))}
             </div>
           )}
         </div>
       </section>
 
-      {/* ── TOP RATED GRID ── */}
-      <section className="py-24 bg-slate-50 border-t border-slate-100">
+      {/* ── TOP RATEDfavorites SECTION ── */}
+      <section className="py-28 relative overflow-hidden bg-white border-y border-gray-50">
+        <div className="absolute bottom-0 right-0 w-[600px] h-[600px] bg-amber-400/5 rounded-full blur-[140px] translate-x-1/3 translate-y-1/3" />
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex flex-col md:flex-row justify-between items-end gap-6 mb-16">
-            <div className="space-y-3 prose">
-              <h2 className="text-4xl font-black text-slate-900 tracking-tight m-0 flex items-center gap-3">
-                Top Rated <Star className="w-8 h-8 fill-amber-400 text-amber-400" />
-              </h2>
-              <p className="text-slate-400 text-lg font-medium m-0">Customer favorites based on verified reviews.</p>
-            </div>
+          <div className="text-center mb-20">
+             <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-amber-50 border border-amber-100 text-amber-500 text-[10px] font-black uppercase tracking-widest mb-6">
+                <Star className="w-4 h-4 fill-amber-500" /> Patient Choice
+             </div>
+             <h2 className="text-5xl font-black text-gray-900 tracking-tight leading-tight mb-4">Patient Favorites</h2>
+             <p className="text-gray-500 font-medium max-w-lg mx-auto leading-relaxed">Our most requested and highly-rated medications verified by the community.</p>
           </div>
 
           {isLoadingTop ? (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-10 px-4">
               {[...Array(4)].map((_, i) => <LoadingSkeleton key={i} />)}
             </div>
           ) : (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
-              {topRatedData?.medicines?.map(medicine => (
-                <MedicineCard key={medicine._id} medicine={medicine} />
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-10 px-4">
+              {topRatedData?.medicines?.map((medicine, idx) => (
+                <div key={medicine._id} className="animate-in fade-in slide-in-from-bottom-12 duration-700" style={{ animationDelay: `${idx * 100}ms` }}>
+                    <MedicineCard medicine={medicine} />
+                </div>
               ))}
             </div>
           )}
         </div>
       </section>
 
-      {/* ── SHOP RATING STATS ── */}
+      {/* ── PATIENT FEEDBACK GRID ── */}
       {!isLoadingStats && ratingStats && (
-        <section className="py-24 bg-white border-t border-slate-50">
+        <section className="py-28 bg-gray-50/50">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="flex flex-col md:flex-row justify-between items-end gap-6 mb-16">
-              <div className="space-y-3 prose">
-                <h2 className="text-4xl font-black text-slate-900 tracking-tight m-0">What Our Patients Say</h2>
-                <p className="text-slate-400 text-lg font-medium m-0">Real feedback from verified medicine purchasers.</p>
-              </div>
-            </div>
-
-            <div className="grid grid-cols-1 lg:grid-cols-12 gap-12">
-              <div className="lg:col-span-4 space-y-8">
-                <div className="bg-slate-50 p-8 rounded-[40px] border border-slate-100 flex flex-col items-center justify-center text-center">
-                  <h3 className="text-6xl font-black text-slate-900 mb-2">{ratingStats.averageRating.toFixed(1)}</h3>
-                  <div className="flex gap-1 mb-3">
-                    {[1, 2, 3, 4, 5].map((star) => (
-                      <Star key={star} className={`w-6 h-6 ${star <= Math.round(ratingStats.averageRating) ? 'fill-amber-400 text-amber-400' : 'fill-slate-200 text-slate-200'}`} />
-                    ))}
-                  </div>
-                  <p className="text-slate-500 font-medium tracking-wide text-sm uppercase">Based on {ratingStats.totalReviews} reviews</p>
+            <div className="flex flex-col lg:flex-row gap-20 px-4">
+              {/* Stats Summary Card */}
+              <div className="w-full lg:w-1/3 space-y-10">
+                <div className="space-y-4">
+                    <h2 className="text-5xl font-black text-gray-900 tracking-tight leading-tight">Patient Veracity</h2>
+                    <p className="text-gray-500 font-medium leading-relaxed">Real transparency from real patients. See why we are trusted across India.</p>
                 </div>
                 
-                <div className="space-y-4 px-4">
-                  {[5, 4, 3, 2, 1].map((star) => {
-                    const count = ratingStats.starCounts?.[star] || 0;
-                    const percentage = ratingStats.totalReviews === 0 ? 0 : (count / ratingStats.totalReviews) * 100;
-                    return (
-                      <div key={star} className="flex items-center gap-4 text-sm font-bold text-slate-600">
-                        <span className="w-8 flex items-center gap-1.5">{star} <Star className="w-3.5 h-3.5 fill-current" /></span>
-                        <div className="flex-1 h-3 bg-slate-100 rounded-full overflow-hidden">
-                          <div className="h-full bg-amber-400 rounded-full" style={{ width: `${percentage}%` }}></div>
-                        </div>
-                        <span className="w-8 text-right text-slate-400 font-medium">{count}</span>
-                      </div>
-                    );
-                  })}
+                <div className="bg-white p-10 rounded-[48px] border border-gray-100 shadow-premium text-center space-y-6">
+                    <div className="text-7xl font-black text-gray-900 italic tracking-tighter">
+                        {ratingStats.averageRating.toFixed(1)}
+                    </div>
+                    <div className="flex justify-center gap-2">
+                        {[1, 2, 3, 4, 5].map((star) => (
+                        <Star key={star} className={`w-8 h-8 ${star <= Math.round(ratingStats.averageRating) ? 'fill-amber-400 text-amber-400' : 'fill-gray-100 text-gray-100'}`} />
+                        ))}
+                    </div>
+                    <p className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em]">Based on {ratingStats.totalReviews} global reviews</p>
+                    
+                    <div className="space-y-3 pt-6 border-t border-gray-50">
+                        {[5, 4, 3, 2, 1].map((star) => {
+                            const count = ratingStats.starCounts?.[star] || 0;
+                            const percentage = ratingStats.totalReviews === 0 ? 0 : (count / ratingStats.totalReviews) * 100;
+                            return (
+                                <div key={star} className="flex items-center gap-4 text-[10px] font-black text-gray-400 uppercase tracking-widest">
+                                    <span className="w-6 flex items-center gap-1.5">{star} <Star className="w-3 h-3 fill-current" /></span>
+                                    <div className="flex-1 h-2 bg-gray-50 rounded-full overflow-hidden">
+                                        <div className="h-full bg-primary rounded-full transition-all duration-1000" style={{ width: `${percentage}%` }}></div>
+                                    </div>
+                                    <span className="w-4 text-right">{count}</span>
+                                </div>
+                            );
+                        })}
+                    </div>
                 </div>
               </div>
 
-              <div className="lg:col-span-8 space-y-8">
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-                  {reviews.map((review) => (
-                    <div key={review._id} className="bg-white p-6 rounded-[32px] border border-slate-100 shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300 flex flex-col h-full animate-in fade-in slide-in-from-bottom-4 duration-500">
-                      <div className="flex items-start justify-between mb-4">
-                        <div>
-                          <p className="font-bold text-slate-900">{review.userName}</p>
-                          <p className="text-xs font-bold text-slate-400 mt-1 uppercase tracking-wider">{new Date(review.dateSubmitted).toLocaleDateString()}</p>
+              {/* Reviews List */}
+              <div className="w-full lg:w-2/3 space-y-10">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                  {reviews.map((review, idx) => (
+                    <div key={review._id} className="bg-white p-10 rounded-[40px] border border-gray-100 shadow-premium hover:shadow-2xl transition-all duration-500 flex flex-col h-full animate-in slide-in-from-bottom-8" style={{ animationDelay: `${idx * 120}ms` }}>
+                      <div className="flex items-start justify-between mb-8">
+                        <div className="flex items-center gap-4">
+                            <div className="w-14 h-14 bg-primary/5 rounded-2xl flex items-center justify-center font-black text-primary text-xl uppercase">
+                                {review.userName.charAt(0)}
+                            </div>
+                            <div>
+                                <p className="font-black text-gray-900 leading-none mb-1">{review.userName}</p>
+                                <p className="text-[9px] font-black text-gray-400 uppercase tracking-[0.2em]">{new Date(review.dateSubmitted).toLocaleDateString()}</p>
+                            </div>
                         </div>
-                        <div className="flex gap-0.5">
+                        <div className="flex gap-1 pt-1">
                           {[...Array(5)].map((_, i) => (
-                            <Star key={i} className={`w-4 h-4 ${i < review.rating ? 'fill-amber-400 text-amber-400' : 'fill-slate-100 text-slate-100'}`} />
+                            <Star key={i} className={`w-3.5 h-3.5 ${i < review.rating ? 'fill-amber-400 text-amber-400' : 'fill-gray-100 text-gray-100'}`} />
                           ))}
                         </div>
                       </div>
                       <div className="flex-grow">
-                         <p className="text-slate-600 leading-relaxed text-sm italic">"{review.message}"</p>
+                         <p className="text-gray-600 leading-[1.8] font-medium italic text-lg pr-4">"{review.message}"</p>
                       </div>
-                      <div className="mt-6 pt-4 border-t border-slate-50 flex items-center gap-2 text-xs font-bold text-primary mb-0 uppercase tracking-wider">
-                         <Package className="w-4 h-4" /> Purchased {review.medicine?.name}
+                      <div className="mt-10 pt-6 border-t border-gray-50 flex items-center justify-between">
+                         <div className="flex items-center gap-2.5 px-3 py-1 bg-gray-50 rounded-lg text-[10px] font-black text-primary uppercase tracking-widest">
+                             <Package className="w-3.5 h-3.5" /> {review.medicine?.name}
+                         </div>
+                         <CheckCircle2 className="w-5 h-5 text-emerald-500" />
                       </div>
                     </div>
                   ))}
-                  {reviews.length === 0 && (
-                     <div className="col-span-full p-12 text-center text-slate-400 font-medium bg-slate-50 rounded-[32px] border border-slate-100">
-                        No reviews published yet.
-                     </div>
-                  )}
                 </div>
 
-                {/* See More Button */}
                 {reviews.length > 0 && (
-                  <div className="flex flex-col items-center gap-4 pt-4">
+                  <div className="flex justify-center pt-6">
                     {hasMoreReviews ? (
                       <button 
                         onClick={handleSeeMoreReviews}
                         disabled={isLoadingMore}
-                        className="px-10 py-4 bg-slate-900 text-white font-bold rounded-2xl hover:bg-black transition-all disabled:opacity-50 flex items-center gap-2"
+                        className="px-12 py-5 bg-gray-900 text-white font-black text-xs uppercase tracking-[0.2em] rounded-[32px] hover:bg-black shadow-2xl shadow-gray-400/30 transition-all flex items-center gap-4 active:scale-95"
                       >
-                        {isLoadingMore ? <span className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" /> : 'See More Reviews'}
-                        {!isLoadingMore && <ChevronRight className="w-5 h-5" />}
+                        {isLoadingMore ? <Loader2 className="w-5 h-5 animate-spin" /> : "Load More Experience"}
+                        {!isLoadingMore && <ArrowRight className="w-5 h-5" />}
                       </button>
                     ) : (
-                      <div className="px-8 py-3 bg-slate-50 text-slate-400 text-sm font-bold rounded-xl border border-dashed border-slate-200">
-                        All reviews loaded
-                      </div>
+                        <div className="px-10 py-4 bg-white border border-gray-100 rounded-full text-[10px] font-black text-gray-400 uppercase tracking-[0.3em]">
+                            Verification Complete • All Logs Loaded
+                        </div>
                     )}
                   </div>
                 )}
@@ -440,133 +543,147 @@ const HomePage = () => {
         </section>
       )}
 
-      {/* ── PHARMACIST GUIDE & BLOGS ── */}
-      <section className="py-28 bg-slate-900 text-white overflow-hidden relative">
-        <div className="absolute top-0 right-0 w-96 h-96 bg-primary/20 rounded-full blur-[120px]" />
-        <div className="absolute bottom-0 left-0 w-96 h-96 bg-teal-400/10 rounded-full blur-[100px]" />
+      {/* ── MISSION & PHARMACIST SECTION ── */}
+      <section className="py-32 bg-gray-900 text-white overflow-hidden relative">
+        <div className="absolute top-0 right-0 w-[800px] h-[800px] bg-primary/20 rounded-full blur-[160px] translate-x-1/2 -translate-y-1/2" />
+        <div className="absolute bottom-0 left-0 w-[600px] h-[600px] bg-accent/10 rounded-full blur-[140px] -translate-x-1/2 translate-y-1/2" />
 
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex flex-col lg:flex-row items-center gap-20">
-            <div className="w-full lg:w-1/2 space-y-8 relative z-10">
-              <div className="inline-block px-4 py-1.5 rounded-full bg-white/10 backdrop-blur border border-white/10 text-primary text-xs font-black uppercase tracking-widest">
-                Our Mission
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
+          <div className="flex flex-col lg:flex-row items-center gap-24">
+            <div className="w-full lg:w-1/2 space-y-10 px-4 text-center lg:text-left">
+              <div className="inline-flex items-center gap-2.5 px-6 py-2 rounded-full bg-white/5 backdrop-blur-xl border border-white/10 text-primary text-[10px] font-black uppercase tracking-widest">
+                <ShieldCheck className="w-4 h-4" /> Integrity First
               </div>
-              <h2 className="text-5xl font-black leading-tight tracking-tight">Dedicated to Your <br /> Long-Term Wellness</h2>
-              <p className="text-slate-400 text-xl leading-relaxed font-medium">
-                Our licensed pharmacists don't just dispense pills — they provide clarity. We're here to help you understand every prescription and health choice.
+              <h2 className="text-5xl md:text-7xl font-black leading-[0.9] tracking-tight">Dedicated to Your Resilience</h2>
+              <p className="text-gray-400 text-xl leading-relaxed font-semibold max-w-xl">
+                We don't just provide pharmaceuticals — we provide certainty. Our goal is to ensure every patient has access to verified, clinical-grade medical intelligence.
               </p>
-              <div className="flex gap-10 py-6 border-y border-white/5">
-                <div>
-                  <div className="text-4xl font-black text-primary">15+</div>
-                  <div className="text-sm font-bold text-slate-400 mt-1 uppercase tracking-widest">Years Exp.</div>
+              
+              <div className="grid grid-cols-2 gap-10 py-10 border-y border-white/5">
+                <div className="space-y-2">
+                  <div className="text-5xl font-black text-primary italic">15+</div>
+                  <div className="text-[10px] font-black text-gray-500 uppercase tracking-[0.2em]">Years Distinction</div>
                 </div>
-                <div>
-                  <div className="text-4xl font-black text-teal-400">2k+</div>
-                  <div className="text-sm font-bold text-slate-400 mt-1 uppercase tracking-widest">Happy Patients</div>
+                <div className="space-y-2">
+                  <div className="text-5xl font-black text-teal-400 italic">2.4k+</div>
+                  <div className="text-[10px] font-black text-gray-500 uppercase tracking-[0.2em]">Verified Patients</div>
                 </div>
               </div>
-              <button
-                onClick={() => setIsBlogOpen(true)}
-                className="px-12 py-5 bg-white text-slate-900 font-bold rounded-[28px] hover:shadow-2xl hover:bg-slate-50 transition-all flex items-center gap-3 active:scale-98"
-              >
-                <BookOpen className="w-5 h-5" /> Read Expert Blogs
-              </button>
+
+              <div className="pt-6 flex flex-col sm:flex-row gap-6 justify-center lg:justify-start">
+                  <button
+                    onClick={() => setIsBlogOpen(true)}
+                    className="px-12 py-5 bg-white text-gray-900 font-black text-xs uppercase tracking-[0.2em] rounded-[28px] hover:bg-gray-50 transition-all flex items-center justify-center gap-4 shadow-2xl active:scale-95"
+                  >
+                    <BookOpen className="w-5 h-5 text-primary" /> Expert Insights
+                  </button>
+                  <Link to="/about" className="px-10 py-5 border border-white/10 hover:bg-white/5 backdrop-blur rounded-[28px] font-black text-xs text-white uppercase tracking-widest transition-all flex items-center justify-center gap-3">
+                      The MedShop Story
+                  </Link>
+              </div>
             </div>
 
-            <div className="w-full lg:w-1/2 flex items-center justify-center p-4">
-              <div className="relative max-w-sm w-full">
-                <div className="bg-white/5 backdrop-blur-2xl rounded-[40px] p-10 border border-white/10 text-center">
-                  <div className="w-32 h-32 rounded-3xl mx-auto mb-8 overflow-hidden grayscale group-hover:grayscale-0 transition-all duration-700">
-                    <img src="https://i.pravatar.cc/150?u=doc1" alt="Pharmacist" className="w-full h-full object-cover" />
-                  </div>
-                  <h4 className="text-2xl font-bold mb-2">Dr. Ananya Sharma</h4>
-                  <p className="text-primary font-black uppercase text-[10px] tracking-widest mb-6">Chief Pharmacist</p>
-                  <p className="text-slate-400 text-sm leading-relaxed italic">"Access to medicines should be simple, verified, and informed. That's why we built MedShop."</p>
-                </div>
-              </div>
+            <div className="w-full lg:w-1/2 px-4">
+               <div className="relative max-w-md mx-auto group">
+                    <div className="absolute -inset-10 bg-primary/20 rounded-[80px] blur-[100px] opacity-0 group-hover:opacity-100 transition-opacity duration-1000" />
+                    <div className="bg-white/5 backdrop-blur-2xl rounded-[60px] p-12 border border-white/10 text-center relative overflow-hidden group">
+                        <div className="absolute top-0 left-0 w-24 h-24 bg-primary/20 rounded-full blur-[60px]" />
+                        <div className="w-40 h-40 rounded-[40px] mx-auto mb-10 overflow-hidden shadow-2xl border-4 border-white transform transition-transform duration-700 group-hover:scale-110">
+                            <img src="https://i.pravatar.cc/300?u=pharmacist1" alt="Chief Pharmacist" className="w-full h-full object-cover" />
+                        </div>
+                        <h4 className="text-3xl font-black mb-1">Dr. Ananya Sharma</h4>
+                        <p className="text-primary font-black uppercase text-[10px] tracking-[0.3em] mb-8">Chief Clinical Pharmacist</p>
+                        <p className="text-gray-400 text-lg leading-relaxed font-semibold italic">
+                            "Integrity in medicine is non-negotiable. Our digital platform is an extension of our clinical commitment to your health."
+                        </p>
+                        <div className="mt-12 pt-8 border-t border-white/5 flex items-center justify-center gap-4 text-white/40">
+                            <div className="text-[10px] font-black uppercase tracking-widest">Regd. No: MH-24019</div>
+                            <div className="w-1.5 h-1.5 rounded-full bg-primary" />
+                            <div className="text-[10px] font-black uppercase tracking-widest">Medical Council verified</div>
+                        </div>
+                    </div>
+               </div>
             </div>
           </div>
         </div>
       </section>
 
-      {/* ── UPDATED STORE INFO SECTION ── */}
-      <section className="py-24 bg-white">
+      {/* ── LOCATOR & CONTACT ── */}
+      <section className="py-32 bg-white relative">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 items-stretch">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-20 items-stretch px-4">
 
-            <div className="space-y-12 py-6">
-              <div className="space-y-4">
-                <h2 className="text-5xl font-black text-slate-900 tracking-tighter">Locate & Connect</h2>
-                <p className="text-slate-500 text-xl font-medium leading-relaxed">Visit us in the heart of Delhi or reach out via our digital channels.</p>
+            <div className="space-y-16 py-4">
+              <div className="space-y-6">
+                <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-blue-50 border border-blue-100 text-blue-600 text-[10px] font-black uppercase tracking-widest">
+                    <MapPin className="w-4 h-4" /> Global Presence
+                </div>
+                <h2 className="text-5xl md:text-7xl font-black text-gray-900 tracking-tighter leading-[0.9]">Locate & Connect</h2>
+                <p className="text-gray-500 text-xl font-semibold leading-relaxed max-w-md">Experience clinical care at our physical flagship location in Connaught Place.</p>
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-8">
-                <div className="p-8 rounded-[40px] bg-slate-50 border border-slate-100 space-y-4 hover:shadow-lg transition-all">
-                  <div className="p-3 bg-white w-fit rounded-2xl shadow-sm text-primary"><MapPin className="h-6 w-6" /></div>
-                  <h5 className="font-bold text-gray-900 text-lg">Main Store</h5>
-                  <p className="text-slate-500 text-sm leading-relaxed font-medium">123 Health Street, Connaught Place, New Delhi – 110001</p>
-                </div>
-                <div className="p-8 rounded-[40px] bg-slate-50 border border-slate-100 space-y-4 hover:shadow-lg transition-all">
-                  <div className="p-3 bg-white w-fit rounded-2xl shadow-sm text-blue-500"><Phone className="h-6 w-6" /></div>
-                  <h5 className="font-bold text-gray-900 text-lg">Call Us</h5>
-                  <p className="text-slate-500 text-sm leading-relaxed font-medium">+91 98765 43210 <br /> +91 11 2345 6789</p>
-                </div>
-                {/* NEW GMAIL BOX */}
-                <div className="p-8 rounded-[40px] bg-emerald-50 border border-emerald-100 space-y-4 hover:shadow-lg transition-all">
-                  <div className="p-3 bg-white w-fit rounded-2xl shadow-sm text-emerald-600"><Mail className="h-6 w-6" /></div>
-                  <h5 className="font-bold text-gray-900 text-lg">Gmail Express</h5>
-                  <p className="text-emerald-700/70 text-sm leading-relaxed font-medium">contact@medshop.in <br /> support@medshop.in</p>
-                  <a href="mailto:contact@medshop.in" className="inline-block text-xs font-black uppercase text-emerald-600 tracking-widest hover:underline mt-2">Send Mail Now</a>
-                </div>
-                <div className="p-8 rounded-[40px] bg-slate-50 border border-slate-100 space-y-4 hover:shadow-lg transition-all">
-                  <div className="p-3 bg-white w-fit rounded-2xl shadow-sm text-purple-600"><Clock className="h-6 w-6" /></div>
-                  <h5 className="font-bold text-gray-900 text-lg">Service Hours</h5>
-                  <p className="text-slate-500 text-sm leading-relaxed font-medium">Mon–Sat: 8:00 AM – 10:00 PM <br /> Sun: 9:00 AM – 8:00 PM</p>
-                </div>
+                {[
+                    { title: 'Flagship Store', detail: '123 Health Street, Connaught Place, New Delhi – 110001', icon: <MapPin className="h-6 w-6 text-primary" />, bg: 'bg-primary/5' },
+                    { title: 'Priority Support', detail: '+91 98765 43210\n+91 11 2345 6789', icon: <Phone className="h-6 w-6 text-accent" />, bg: 'bg-accent/5' },
+                    { title: 'Clinical Inquiries', detail: 'care@medshop.in\nconsult@medshop.in', icon: <Mail className="h-6 w-6 text-emerald-500" />, bg: 'bg-emerald-50' },
+                    { title: 'Health Hours', detail: 'Mon–Sat: 8 AM – 10 PM\nSun: 9 AM – 8 PM', icon: <Clock className="h-6 w-6 text-purple-500" />, bg: 'bg-purple-50' }
+                ].map((item, i) => (
+                    <div key={i} className={`p-8 rounded-[48px] ${item.bg} border border-gray-100 space-y-5 hover:shadow-premium transition-all duration-500 group cursor-default`}>
+                        <div className="p-3 bg-white w-fit rounded-2xl shadow-sm transform group-hover:rotate-12 transition-transform">{item.icon}</div>
+                        <h5 className="font-black text-gray-900 text-lg uppercase tracking-tight">{item.title}</h5>
+                        <p className="text-gray-500 text-sm leading-relaxed font-bold whitespace-pre-line opacity-80">{item.detail}</p>
+                    </div>
+                ))}
               </div>
 
               <a
                 href="https://www.google.com/maps/dir/?api=1&destination=28.6139,77.2090"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="inline-flex w-full py-6 bg-slate-900 text-white font-bold rounded-[32px] hover:bg-black transition-all shadow-2xl shadow-slate-400/20 active:scale-95 items-center justify-center gap-4"
+                className="inline-flex w-full py-6 bg-gray-900 text-white font-black text-xs uppercase tracking-[0.3em] rounded-[32px] hover:bg-black shadow-2xl shadow-gray-400/20 active:scale-95 items-center justify-center gap-4 transition-all"
               >
-                <MapPin className="w-5 h-5" /> Get Directions on Mobile
+                <MapPin className="w-5 h-5 text-primary" /> Start GPS Navigation
               </a>
             </div>
 
-            <div className="min-h-[500px] lg:min-h-full rounded-[64px] overflow-hidden border-8 border-slate-50 shadow-2xl relative z-0">
+            <div className="min-h-[600px] lg:min-h-full rounded-[80px] overflow-hidden border-[16px] border-gray-50 shadow-premium relative group">
+              <div className="absolute inset-0 bg-primary/5 opacity-0 group-hover:opacity-100 transition-opacity duration-1000 pointer-events-none" />
               <StoreMap />
             </div>
           </div>
         </div>
       </section>
 
-      {/* ── FAQ MINIMAL SECTION ── */}
-      <section className="py-24 border-t border-slate-50">
-        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center mb-16">
-            <h2 className="text-4xl font-black text-slate-900 mb-4">Quick Answers</h2>
-            <p className="text-slate-400 font-medium">Frequently asked questions about our inventory.</p>
+      {/* ── PREMIUM FAQ ACCORDION ── */}
+      <section className="py-32 bg-gray-50/50 border-t border-gray-100">
+        <div className="max-w-4xl mx-auto px-6 lg:px-8">
+          <div className="text-center mb-24">
+             <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-primary/5 border border-primary/10 text-primary text-[10px] font-black uppercase tracking-widest mb-6">
+                <HelpCircle className="w-4 h-4" /> Common Queries
+             </div>
+             <h2 className="text-5xl font-black text-gray-900 mb-6 tracking-tight">Patient Assistance</h2>
+             <p className="text-gray-500 font-semibold max-w-md mx-auto leading-relaxed">Everything you need to know about navigating our medical inventory platform.</p>
           </div>
-          <div className="space-y-4">
+          
+          <div className="space-y-6">
             {faqs.map((f, i) => (
               <div
                 key={i}
-                className={`p-6 sm:p-8 rounded-[32px] transition-all duration-300 cursor-pointer group border ${openFaq === i ? 'bg-white border-indigo-100 shadow-xl shadow-indigo-500/5' : 'bg-slate-50 border-transparent hover:bg-slate-100'}`}
+                className={`p-8 sm:p-10 rounded-[40px] transition-all duration-500 cursor-pointer group border ${openFaq === i ? 'bg-white border-primary shadow-premium' : 'bg-white/40 border-gray-100 hover:bg-white hover:border-gray-200'}`}
                 onClick={() => setOpenFaq(openFaq === i ? null : i)}
               >
-                <div className="flex items-center justify-between gap-4">
-                  <h4 className="flex items-center gap-4 font-bold text-slate-900 text-lg">
-                    <div className={`w-2 h-2 rounded-full transition-colors ${openFaq === i ? 'bg-indigo-600' : 'bg-slate-300'}`} />
+                <div className="flex items-center justify-between gap-6">
+                  <h4 className="flex items-center gap-5 font-black text-gray-900 text-xl tracking-tight">
+                    <span className={`text-[10px] font-black uppercase tracking-widest p-2 rounded-lg transition-colors ${openFaq === i ? 'bg-primary text-white' : 'bg-gray-50 text-gray-400'}`}>0{i+1}</span>
                     {f.q}
                   </h4>
-                  <div className={`p-2 rounded-full transition-colors ${openFaq === i ? 'bg-indigo-600 text-white' : 'bg-white text-slate-400 border border-slate-100'}`}>
-                    {openFaq === i ? <Minus className="w-4 h-4" /> : <Plus className="w-4 h-4" />}
+                  <div className={`p-4 rounded-2xl transition-all duration-500 ${openFaq === i ? 'bg-primary text-white rotate-180' : 'bg-gray-50 text-gray-400 group-hover:bg-gray-100'}`}>
+                    {openFaq === i ? <Minus className="w-5 h-5" /> : <Plus className="w-5 h-5" />}
                   </div>
                 </div>
-                <div className={`overflow-hidden transition-all duration-500 ease-in-out ${openFaq === i ? 'max-h-40 mt-5 opacity-100' : 'max-h-0 opacity-0'}`}>
-                  <p className="text-slate-500 leading-relaxed font-medium pl-6 border-l-2 border-indigo-50">
+                <div className={`overflow-hidden transition-all duration-500 ease-in-out ${openFaq === i ? 'max-h-60 mt-8 opacity-100' : 'max-h-0 opacity-0'}`}>
+                  <p className="text-gray-500 leading-relaxed font-semibold text-lg pl-14 border-l-4 border-primary/20">
                     {f.a}
                   </p>
                 </div>

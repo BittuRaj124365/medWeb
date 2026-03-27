@@ -1,6 +1,10 @@
 import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { Lock, User, ArrowRight, ShieldCheck, Mail, RefreshCw, UserCircle, CheckCircle2, HelpCircle } from 'lucide-react';
+import { useNavigate, Link } from 'react-router-dom';
+import {
+  Lock, User, ArrowRight, ShieldCheck, Mail, RefreshCw,
+  UserCircle, CheckCircle2, HelpCircle, ChevronLeft,
+  ShieldAlert, Fingerprint, Key, Globe, Sparkles, Loader2, Activity
+} from 'lucide-react';
 import toast from 'react-hot-toast';
 import apiClient from '../../api/apiClient';
 
@@ -36,23 +40,30 @@ const AdminLoginPage = () => {
 
   const handleLoginSubmit = async (e) => {
     e.preventDefault();
-    if (!username || !password) return toast.error('Please enter username and password');
+    if (!username || !password) return toast.error('Check identity and credentials');
     try {
       setLoading(true);
       const res = await apiClient.post('/auth/login', { username, password });
-      if (res.data.requiresSetup) { toast('Complete your account setup to enable OTP login.', { icon: '⚙️' }); setStep('setup'); }
-      else if (res.data.requiresOtp) { toast.success('OTP sent to your registered email'); setStep('otp'); setCountdown(300); setResendCooldown(30); }
-    } catch (error) { toast.error(error.response?.data?.message || 'Login failed. Check your credentials.'); }
-    finally { setLoading(false); }
+      if (res.data.requiresSetup) {
+        toast('Account Security: Initial Setup Required', { icon: '🛡️' });
+        setStep('setup');
+      }
+      else if (res.data.requiresOtp) {
+        toast.success('Secure OTP dispatched to encrypted channel');
+        setStep('otp'); setCountdown(300); setResendCooldown(30);
+      }
+    } catch (error) {
+      toast.error(error.response?.data?.message || 'Access Denied: Check Credentials');
+    } finally { setLoading(false); }
   };
 
   const validateSetup = () => {
     const errors = {};
-    if (!setupForm.name.trim()) errors.name = 'Full name is required';
-    if (!setupForm.email) errors.email = 'Email is required';
-    else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(setupForm.email)) errors.email = 'Enter a valid email address';
-    if (!setupForm.confirmEmail) errors.confirmEmail = 'Please confirm your email';
-    else if (setupForm.email !== setupForm.confirmEmail) errors.confirmEmail = 'Emails do not match';
+    if (!setupForm.name.trim()) errors.name = 'Clinical identity required';
+    if (!setupForm.email) errors.email = 'Secure email required';
+    else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(setupForm.email)) errors.email = 'Invalid communication channel';
+    if (!setupForm.confirmEmail) errors.confirmEmail = 'Re-verification required';
+    else if (setupForm.email !== setupForm.confirmEmail) errors.confirmEmail = 'Verification mismatch';
     setSetupErrors(errors);
     return Object.keys(errors).length === 0;
   };
@@ -63,24 +74,24 @@ const AdminLoginPage = () => {
     try {
       setLoading(true);
       await apiClient.post('/auth/setup-email', { username, name: setupForm.name, email: setupForm.email, confirmEmail: setupForm.confirmEmail });
-      toast.success('Email saved! OTP sent to your inbox.');
+      toast.success('Channel Verified; Dispatched OTP');
       setStep('otp'); setCountdown(300); setResendCooldown(30);
-    } catch (error) { toast.error(error.response?.data?.message || 'Setup failed. Try again.'); }
+    } catch (error) { toast.error(error.response?.data?.message || 'Initialization Failure. Retry.'); }
     finally { setLoading(false); }
   };
 
   const handleVerifyOtp = async (e) => {
     e.preventDefault();
-    if (!otp || otp.length !== 6) return toast.error('Please enter a valid 6-digit OTP');
+    if (!otp || otp.length !== 6) return toast.error('Invalid Protocol Buffer: Check digits');
     try {
       setLoading(true);
-      const res = await apiClient.post('/auth/verify-otp', { username, otp });
-      localStorage.setItem('adminToken', res.data.token);
-      localStorage.setItem('adminUser', JSON.stringify(res.data));
-      toast.success('Login successful!');
-      navigate('/admin/dashboard');
+      const response = await apiClient.post('/auth/verify-otp', { username, otp });
+      localStorage.setItem('adminToken', response.data.token);
+      localStorage.setItem('adminUser', JSON.stringify(response.data));
+      toast.success('Security Clearance Granted');
+      navigate('/admin/dashboard/overview');
     } catch (error) {
-      toast.error(error.response?.data?.message || 'Invalid OTP');
+      toast.error(error.response?.data?.message || 'Security Verification Failed');
       if (error.response?.status === 403) setStep('login');
     } finally { setLoading(false); }
   };
@@ -90,206 +101,304 @@ const AdminLoginPage = () => {
     try {
       setLoading(true);
       await apiClient.post('/auth/resend-otp', { username });
-      toast.success('New OTP sent to your email');
+      toast.success('Secondary Burst OTP Dispatched');
       setCountdown(300); setResendCooldown(30);
-    } catch (error) { toast.error(error.response?.data?.message || 'Failed to resend OTP'); }
+    } catch (error) { toast.error(error.response?.data?.message || 'Burst Transmission Failed'); }
     finally { setLoading(false); }
   };
 
   const handleForgotSubmit = async (e) => {
     e.preventDefault();
-    if (!forgotEmail || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(forgotEmail)) return toast.error('Please enter a valid email address');
+    if (!forgotEmail || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(forgotEmail)) return toast.error('Check Communication Channel');
     try {
       setLoading(true);
       await apiClient.post('/auth/forgot-password', { email: forgotEmail });
       setForgotSent(true);
-    } catch (error) { toast.error(error.response?.data?.message || 'No account found with that email'); }
+    } catch (error) { toast.error(error.response?.data?.message || 'Identity not found in logs'); }
     finally { setLoading(false); }
   };
 
   const formatTime = (s) => `${Math.floor(s / 60)}:${(s % 60).toString().padStart(2, '0')}`;
 
-  const goodInput = 'block w-full pl-10 pr-3 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-primary/30 focus:border-primary sm:text-sm bg-gray-50 focus:bg-white transition-colors outline-none';
-  const badInput  = 'block w-full pl-10 pr-3 py-3 border border-red-300 rounded-xl focus:ring-2 focus:ring-red-200 sm:text-sm bg-red-50 transition-colors outline-none';
-
-  const stepIcon = { login: <Lock className="w-8 h-8 text-primary" />, setup: <UserCircle className="w-8 h-8 text-primary" />, otp: <ShieldCheck className="w-8 h-8 text-primary" />, forgot: <HelpCircle className="w-8 h-8 text-primary" /> };
-  const isBack = step !== 'login';
+  const inputStyle = (hasError) => `block w-full pl-14 pr-6 py-5 bg-gray-50 border rounded-2xl font-bold text-sm outline-none transition-all focus:bg-white focus:ring-4 ${hasError ? 'border-red-300 focus:ring-red-50' : 'border-gray-100 focus:ring-primary/5 focus:border-primary/20'}`;
 
   return (
-    <div className="min-h-[80vh] flex flex-col justify-center items-center py-12 px-4">
-      <div className="max-w-md w-full bg-white rounded-3xl shadow-xl border border-gray-100 overflow-hidden">
+    <div className="min-h-screen bg-white flex flex-col lg:flex-row overflow-hidden">
 
-        {/* Header */}
-        <div className="h-32 bg-primary/10 flex items-center justify-center relative">
-          {isBack && (
-            <button onClick={() => setStep('login')} className="absolute top-4 left-4 p-2 bg-white/50 rounded-full hover:bg-white text-primary transition-all">
-              <ArrowLeftIcon className="w-5 h-5" />
-            </button>
-          )}
-          <div className="h-16 w-16 bg-white rounded-2xl shadow-sm flex items-center justify-center -mb-20 ring-4 ring-white">
-            {stepIcon[step]}
+      {/* ── LEFT: EXPERT VISUAL ── */}
+      <div className="hidden lg:flex w-1/2 bg-gray-900 relative items-center justify-center p-20 animate-in fade-in duration-1000">
+        <div className="absolute inset-0 z-0">
+          <img
+            src="https://images.unsplash.com/photo-1579154235602-33d5f73043d1?auto=format&fit=crop&q=80&w=1600"
+            className="w-full h-full object-cover opacity-30 grayscale"
+            alt="Medical Laboratory"
+          />
+          <div className="absolute inset-0 bg-gradient-to-br from-gray-900 via-transparent to-primary/20" />
+        </div>
+
+        <div className="relative z-10 space-y-10 max-w-lg">
+          <div className="inline-flex items-center gap-2 px-6 py-2 rounded-full bg-white/5 backdrop-blur-xl border border-white/10 text-primary text-[10px] font-black uppercase tracking-[0.3em]">
+            <ShieldAlert className="w-4 h-4" /> Secure Terminal
+          </div>
+          <h1 className="text-6xl font-black text-white leading-tight tracking-tighter italic">
+            Pharmaceutical <br />
+            <span className="text-primary italic">Command Center.</span>
+          </h1>
+          <p className="text-xl text-gray-400 font-semibold leading-relaxed italic">
+            "Precision in inventory, integrity in results. Access the central clinical distribution network."
+          </p>
+          <div className="pt-10 flex items-center gap-8 border-t border-white/5">
+            {[
+              { label: 'Admin Access', value: 'Verified', icon: <Fingerprint className="w-5 h-5" /> },
+              { label: 'Data Integrity', value: 'High', icon: <Activity className="w-5 h-5" /> }
+            ].map((item, i) => (
+              <div key={i} className="flex flex-col gap-1">
+                <div className="text-[10px] font-black text-gray-500 uppercase tracking-widest flex items-center gap-2">
+                  {item.icon} {item.label}
+                </div>
+                <div className="text-lg font-black text-white">{item.value}</div>
+              </div>
+            ))}
           </div>
         </div>
 
-        <div className="p-8 pt-12">
+        {/* Logo Floating */}
+        <div className="absolute top-12 left-12">
+          <Link to="/" className="text-3xl font-black text-white tracking-tighter flex items-center gap-3 italic">
+            <div className="w-10 h-10 bg-primary rounded-xl flex items-center justify-center text-white"><Pill className="w-6 h-6" /></div>
+            MedShop.
+          </Link>
+        </div>
+      </div>
 
-          {/* ── LOGIN ── */}
-          {step === 'login' && (
-            <>
-              <div className="text-center mb-8">
-                <h2 className="text-2xl font-bold text-gray-900">Admin Portal</h2>
-                <p className="text-gray-500 mt-1 text-sm">Sign in to manage inventory</p>
-              </div>
-              <form onSubmit={handleLoginSubmit} className="space-y-5">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Username</label>
-                  <div className="relative">
-                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none"><User className="h-5 w-5 text-gray-400" /></div>
-                    <input type="text" required value={username} onChange={e => setUsername(e.target.value)} className={goodInput} placeholder="admin" />
-                  </div>
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Password</label>
-                  <div className="relative">
-                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none"><Lock className="h-5 w-5 text-gray-400" /></div>
-                    <input type="password" required value={password} onChange={e => setPassword(e.target.value)} className={goodInput} placeholder="••••••••" />
-                  </div>
-                </div>
-                <button type="submit" disabled={loading} className="w-full flex justify-center items-center gap-2 py-3 px-4 rounded-xl text-sm font-medium text-white bg-primary hover:bg-teal-700 disabled:opacity-70 transition-colors">
-                  {loading ? <span className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" /> : <><span>Sign In</span><ArrowRight className="w-4 h-4" /></>}
-                </button>
-              </form>
-              <div className="mt-5 text-center">
-                <button onClick={() => { setForgotSent(false); setForgotEmail(''); setStep('forgot'); }} className="text-sm text-gray-400 hover:text-primary transition-colors">
-                  Forgot your password?
-                </button>
-              </div>
-              <div className="mt-4 text-center">
-                <button onClick={() => navigate('/')} className="flex items-center justify-center gap-2 text-sm text-gray-500 hover:text-primary mx-auto transition-colors">
-                  <ArrowLeftIcon className="w-4 h-4" /> Return to Storefront
-                </button>
-              </div>
-            </>
-          )}
+      {/* ── RIGHT: AUTH FORM ── */}
+      <div className="flex-1 flex flex-col items-center justify-center p-8 lg:p-24 relative overflow-hidden bg-gray-50 lg:bg-white animate-in slide-in-from-right-12 duration-1000">
 
-          {/* ── FIRST-TIME EMAIL SETUP ── */}
-          {step === 'setup' && (
-            <>
-              <div className="text-center mb-6">
-                <h2 className="text-2xl font-bold text-gray-900">Account Setup</h2>
-                <p className="text-gray-500 mt-2 text-sm">One-time setup to enable secure OTP login.</p>
-              </div>
-              <div className="mb-5 bg-amber-50 border border-amber-200 text-amber-800 p-3 rounded-xl text-xs flex items-start gap-2">
-                <Mail className="w-4 h-4 mt-0.5 shrink-0 text-amber-600" />
-                <span>This email will be used to receive OTP codes on every future login.</span>
-              </div>
-              <form onSubmit={handleSetupSubmit} className="space-y-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Full Name *</label>
-                  <div className="relative">
-                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none"><UserCircle className="h-5 w-5 text-gray-400" /></div>
-                    <input type="text" value={setupForm.name} onChange={e => { setSetupForm({...setupForm, name: e.target.value}); setSetupErrors({...setupErrors, name: ''}); }} className={setupErrors.name ? badInput : goodInput} placeholder="John Admin" />
-                  </div>
-                  {setupErrors.name && <p className="text-red-500 text-xs mt-1 pl-1">{setupErrors.name}</p>}
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Email Address *</label>
-                  <div className="relative">
-                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none"><Mail className="h-5 w-5 text-gray-400" /></div>
-                    <input type="email" value={setupForm.email} onChange={e => { setSetupForm({...setupForm, email: e.target.value}); setSetupErrors({...setupErrors, email: ''}); }} className={setupErrors.email ? badInput : goodInput} placeholder="admin@example.com" />
-                  </div>
-                  {setupErrors.email && <p className="text-red-500 text-xs mt-1 pl-1">{setupErrors.email}</p>}
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Confirm Email *</label>
-                  <div className="relative">
-                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none"><CheckCircle2 className="h-5 w-5 text-gray-400" /></div>
-                    <input type="email" value={setupForm.confirmEmail} onChange={e => { setSetupForm({...setupForm, confirmEmail: e.target.value}); setSetupErrors({...setupErrors, confirmEmail: ''}); }} className={setupErrors.confirmEmail ? badInput : goodInput} placeholder="Re-enter email" />
-                  </div>
-                  {setupErrors.confirmEmail && <p className="text-red-500 text-xs mt-1 pl-1">{setupErrors.confirmEmail}</p>}
-                </div>
-                <button type="submit" disabled={loading} className="w-full flex justify-center items-center gap-2 py-3 px-4 rounded-xl text-sm font-medium text-white bg-primary hover:bg-teal-700 disabled:opacity-70 transition-colors mt-2">
-                  {loading ? <span className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" /> : <><span>Save &amp; Send OTP</span><ArrowRight className="w-4 h-4" /></>}
-                </button>
-              </form>
-            </>
-          )}
+        {/* Background Decorative */}
+        <div className="absolute top-0 right-0 w-96 h-96 bg-primary/5 rounded-full blur-[100px] -z-10 translate-x-1/3 -translate-y-1/3" />
 
-          {/* ── OTP ── */}
-          {step === 'otp' && (
-            <>
-              <div className="text-center mb-8">
-                <h2 className="text-2xl font-bold text-gray-900">Verify Identity</h2>
-                <p className="text-gray-500 mt-2 text-sm">We sent a 6-digit code to your registered email.</p>
-              </div>
-              <form onSubmit={handleVerifyOtp} className="space-y-6">
-                <div>
-                  <label className="block text-sm font-bold text-center text-gray-700 mb-3">Enter OTP</label>
-                  <div className="flex justify-center">
-                    <input type="text" required maxLength="6" value={otp} onChange={e => setOtp(e.target.value.replace(/[^0-9]/g, ''))} className="block w-3/4 text-center text-2xl tracking-[0.5em] py-4 border border-gray-200 rounded-xl focus:ring-2 focus:ring-primary focus:border-primary bg-gray-50 focus:bg-white transition-colors outline-none" placeholder="------" />
+        <div className="max-w-md w-full relative z-10">
+
+          <div className="mb-12 text-center lg:text-left">
+            <div className="inline-block lg:hidden mb-10">
+              <Link to="/" className="text-3xl font-black text-gray-900 tracking-tighter flex items-center gap-3 italic">
+                <div className="w-10 h-10 bg-primary rounded-xl flex items-center justify-center text-white"><Pill className="w-6 h-6" /></div>
+                MedShop.
+              </Link>
+            </div>
+
+            {step !== 'login' && (
+              <button
+                onClick={() => setStep('login')}
+                className="mb-8 flex items-center gap-2 text-[10px] font-black text-gray-400 uppercase tracking-widest hover:text-primary transition-all group"
+              >
+                <ChevronLeft className="w-4 h-4 group-hover:-translate-x-1 transition-transform" /> Back to Entrance
+              </button>
+            )}
+
+            <TitleSection step={step} />
+          </div>
+
+          <div className="space-y-10">
+            {/* ── LOGIN PHASE ── */}
+            {step === 'login' && (
+              <form onSubmit={handleLoginSubmit} className="space-y-8">
+                <div className="space-y-4">
+                  <div className="relative group">
+                    <User className="absolute left-6 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-300 group-focus-within:text-primary transition-colors" />
+                    <input
+                      type="text"
+                      required
+                      value={username}
+                      onChange={e => setUsername(e.target.value)}
+                      className={inputStyle(false)}
+                      placeholder="Clinical Identity"
+                    />
                   </div>
-                  {countdown > 0 ? (
-                    <p className="text-center text-xs text-gray-400 mt-3">Expires in: <strong className={countdown < 60 ? 'text-red-500' : 'text-primary'}>{formatTime(countdown)}</strong></p>
-                  ) : (
-                    <p className="text-center text-xs text-red-500 font-bold mt-3">OTP Expired</p>
-                  )}
+                  <div className="relative group">
+                    <Lock className="absolute left-6 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-300 group-focus-within:text-primary transition-colors" />
+                    <input
+                      type="password"
+                      required
+                      value={password}
+                      onChange={e => setPassword(e.target.value)}
+                      className={inputStyle(false)}
+                      placeholder="Authorization Key"
+                    />
+                  </div>
                 </div>
-                <button type="submit" disabled={loading || countdown === 0} className="w-full flex justify-center items-center gap-2 py-3 px-4 rounded-xl text-sm font-medium text-white bg-slate-900 hover:bg-black disabled:opacity-70 transition-colors">
-                  {loading ? <span className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" /> : 'Verify Code'}
-                </button>
-                <div className="text-center">
-                  <button type="button" onClick={handleResendOtp} disabled={resendCooldown > 0 || loading} className="text-sm text-gray-400 hover:text-primary transition-colors flex items-center justify-center gap-1.5 mx-auto disabled:opacity-50">
-                    <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
-                    {resendCooldown > 0 ? `Resend in ${resendCooldown}s` : 'Resend OTP'}
+
+                <div className="flex items-center justify-between px-2">
+                  <Link to="/" className="text-[10px] font-black text-gray-400 uppercase tracking-widest hover:text-primary">Storefront Access</Link>
+                  <button
+                    type="button"
+                    onClick={() => { setForgotSent(false); setForgotEmail(''); setStep('forgot'); }}
+                    className="text-[10px] font-black text-gray-400 uppercase tracking-widest hover:text-primary"
+                  >
+                    Recovery Protocol
                   </button>
                 </div>
-              </form>
-            </>
-          )}
 
-          {/* ── FORGOT PASSWORD ── */}
-          {step === 'forgot' && (
-            <>
-              <div className="text-center mb-6">
-                <h2 className="text-2xl font-bold text-gray-900">Forgot Password</h2>
-                <p className="text-gray-500 mt-2 text-sm">Enter your registered email and we'll send a reset link.</p>
-              </div>
-              {forgotSent ? (
-                <div className="text-center py-6 space-y-5">
-                  <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto">
-                    <CheckCircle2 className="w-8 h-8 text-green-500" />
-                  </div>
-                  <p className="font-bold text-gray-800">Reset email sent!</p>
-                  <p className="text-sm text-gray-500">Check your inbox for the password reset link. It expires in <strong>15 minutes</strong>.</p>
-                  <button onClick={() => setStep('login')} className="text-sm text-primary hover:underline font-medium">Back to login</button>
+                <button
+                  type="submit"
+                  disabled={loading}
+                  className="w-full h-20 bg-gray-900 text-white font-black text-xs uppercase tracking-[0.3em] rounded-[32px] hover:bg-black shadow-2xl transition-all flex items-center justify-center gap-4 active:scale-95 disabled:opacity-50"
+                >
+                  {loading ? <Loader2 className="w-6 h-6 animate-spin" /> : <>Request Clearance <ArrowRight className="w-5 h-5" /></>}
+                </button>
+              </form>
+            )}
+
+            {/* ── SETUP PHASE ── */}
+            {step === 'setup' && (
+              <form onSubmit={handleSetupSubmit} className="space-y-8 animate-in fade-in duration-500">
+                <div className="bg-amber-50 p-6 rounded-[32px] border border-amber-100 flex items-start gap-4">
+                  <div className="p-3 bg-white rounded-2xl shadow-sm text-amber-500"><ShieldAlert className="w-5 h-5" /></div>
+                  <p className="text-amber-800 text-[10px] font-black uppercase tracking-widest leading-relaxed">
+                    Security Initialization required. Link your encrypted communication channel.
+                  </p>
                 </div>
-              ) : (
-                <form onSubmit={handleForgotSubmit} className="space-y-5">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Registered Email</label>
-                    <div className="relative">
-                      <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none"><Mail className="h-5 w-5 text-gray-400" /></div>
-                      <input type="email" required value={forgotEmail} onChange={e => setForgotEmail(e.target.value)} className={goodInput} placeholder="admin@example.com" />
+
+                <div className="space-y-4">
+                  <div className="relative">
+                    <UserCircle className="absolute left-6 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-300" />
+                    <input type="text" value={setupForm.name} onChange={e => { setSetupForm({ ...setupForm, name: e.target.value }); setSetupErrors({ ...setupErrors, name: '' }); }} className={inputStyle(!!setupErrors.name)} placeholder="Internal Full Name" />
+                    {setupErrors.name && <p className="text-red-500 text-[9px] font-black uppercase tracking-widest mt-2 pl-6">{setupErrors.name}</p>}
+                  </div>
+                  <div className="relative">
+                    <Mail className="absolute left-6 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-300" />
+                    <input type="email" value={setupForm.email} onChange={e => { setSetupForm({ ...setupForm, email: e.target.value }); setSetupErrors({ ...setupErrors, email: '' }); }} className={inputStyle(!!setupErrors.email)} placeholder="Verification Email Address" />
+                    {setupErrors.email && <p className="text-red-500 text-[9px] font-black uppercase tracking-widest mt-2 pl-6">{setupErrors.email}</p>}
+                  </div>
+                  <div className="relative">
+                    <CheckCircle2 className="absolute left-6 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-300" />
+                    <input type="email" value={setupForm.confirmEmail} onChange={e => { setSetupForm({ ...setupForm, confirmEmail: e.target.value }); setSetupErrors({ ...setupErrors, confirmEmail: '' }); }} className={inputStyle(!!setupErrors.confirmEmail)} placeholder="Re-Verify Email Channel" />
+                    {setupErrors.confirmEmail && <p className="text-red-500 text-[9px] font-black uppercase tracking-widest mt-2 pl-6">{setupErrors.confirmEmail}</p>}
+                  </div>
+                </div>
+
+                <button type="submit" disabled={loading} className="w-full h-20 bg-primary text-white font-black text-xs uppercase tracking-[0.3em] rounded-[32px] hover:bg-teal-700 shadow-2xl shadow-primary/20 transition-all flex items-center justify-center gap-4 active:scale-95 disabled:opacity-50">
+                  {loading ? <Loader2 className="w-6 h-6 animate-spin" /> : <>Initialize Security <ArrowRight className="w-5 h-5" /></>}
+                </button>
+              </form>
+            )}
+
+            {/* ── OTP PHASE ── */}
+            {step === 'otp' && (
+              <form onSubmit={handleVerifyOtp} className="space-y-10 animate-in fade-in duration-500 text-center">
+                <div className="space-y-8">
+                  <div className="text-[10px] font-black text-gray-300 uppercase tracking-[0.4em]">Protocol Token Verification</div>
+                  <div className="flex justify-center gap-4">
+                    <input
+                      type="text"
+                      required
+                      maxLength="6"
+                      value={otp}
+                      onChange={e => setOtp(e.target.value.replace(/[^0-9]/g, ''))}
+                      className="w-full max-w-[280px] text-center text-4xl font-black italic tracking-[0.4em] py-8 bg-gray-50 border border-gray-100 rounded-[32px] focus:bg-white focus:ring-8 focus:ring-primary/5 transition-all outline-none italic"
+                      placeholder="000000"
+                    />
+                  </div>
+
+                  <div className="flex justify-center items-center gap-4">
+                    <div className="flex items-center gap-2 px-4 py-2 bg-gray-50 rounded-full border border-gray-100 text-[10px] font-black text-gray-400 uppercase tracking-widest">
+                      <div className={`w-2 h-2 rounded-full animate-pulse ${countdown < 60 ? 'bg-red-500' : 'bg-primary'}`} />
+                      Sync Time: {formatTime(countdown)}
                     </div>
+                    <button
+                      type="button"
+                      onClick={handleResendOtp}
+                      disabled={resendCooldown > 0 || loading}
+                      className="text-[10px] font-black text-primary uppercase tracking-widest disabled:text-gray-300 hover:underline"
+                    >
+                      {resendCooldown > 0 ? `Retry in ${resendCooldown}s` : 'Resend Request'}
+                    </button>
                   </div>
-                  <button type="submit" disabled={loading} className="w-full flex justify-center items-center gap-2 py-3 px-4 rounded-xl text-sm font-medium text-white bg-primary hover:bg-teal-700 disabled:opacity-70 transition-colors">
-                    {loading ? <span className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" /> : 'Send Reset Link'}
-                  </button>
-                </form>
-              )}
-            </>
-          )}
+                </div>
 
+                <button type="submit" disabled={loading || countdown === 0} className="w-full h-20 bg-gray-900 text-white font-black text-xs uppercase tracking-[0.3em] rounded-[32px] hover:bg-black shadow-2xl transition-all flex items-center justify-center gap-4 active:scale-95 disabled:opacity-50">
+                  {loading ? <Loader2 className="w-6 h-6 animate-spin" /> : <>Finalize Clearance <Key className="w-4 h-4 text-primary" /></>}
+                </button>
+              </form>
+            )}
+
+            {/* ── FORGOT PHASE ── */}
+            {step === 'forgot' && (
+              <div className="space-y-10 animate-in fade-in duration-500">
+                {forgotSent ? (
+                  <div className="text-center space-y-10 py-10">
+                    <div className="relative inline-block">
+                      <div className="absolute inset-0 bg-emerald-100 rounded-full blur-[40px] animate-pulse" />
+                      <div className="relative w-24 h-24 bg-emerald-50 rounded-[32px] border border-emerald-100 flex items-center justify-center text-emerald-500 mx-auto">
+                        <CheckCircle2 className="w-10 h-10" />
+                      </div>
+                    </div>
+                    <div className="space-y-4">
+                      <h3 className="text-3xl font-black text-gray-900 italic tracking-tighter uppercase">Dispatched.</h3>
+                      <p className="text-gray-500 font-semibold leading-relaxed">
+                        A one-time recovery linkage has been sent to your registered communication channel. Valid for 15 minutes.
+                      </p>
+                    </div>
+                    <button onClick={() => setStep('login')} className="px-10 py-4 bg-gray-900 text-white font-black text-[10px] uppercase tracking-[0.3em] rounded-2xl hover:bg-black transition-all">
+                      Back to Initialization
+                    </button>
+                  </div>
+                ) : (
+                  <form onSubmit={handleForgotSubmit} className="space-y-10">
+                    <div className="space-y-4">
+                      <label className="text-[10px] font-black uppercase tracking-widest text-gray-400 pl-4">Verified Channel</label>
+                      <div className="relative group">
+                        <Mail className="absolute left-6 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-300 group-focus-within:text-primary transition-colors" />
+                        <input type="email" required value={forgotEmail} onChange={e => setForgotEmail(e.target.value)} className={inputStyle(false)} placeholder="Registered email address" />
+                      </div>
+                    </div>
+                    <button type="submit" disabled={loading} className="w-full h-20 bg-primary text-white font-black text-xs uppercase tracking-[0.3em] rounded-[32px] hover:bg-teal-700 shadow-2xl shadow-primary/20 transition-all flex items-center justify-center gap-4 active:scale-95 disabled:opacity-50">
+                      {loading ? <Loader2 className="w-6 h-6 animate-spin" /> : <>Request Linkage <SendIcon className="w-5 h-5 text-white" /></>}
+                    </button>
+                  </form>
+                )}
+              </div>
+            )}
+          </div>
+
+          {/* Support Footer */}
+          <div className="mt-20 pt-10 border-t border-gray-100 flex items-center justify-center gap-6 grayscale opacity-20">
+            <ShieldCheck className="w-10 h-10" />
+            <Globe className="w-10 h-10" />
+            <Sparkles className="w-10 h-10" />
+          </div>
         </div>
       </div>
     </div>
   );
 };
 
-const ArrowLeftIcon = ({ className }) => (
-  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
-    <line x1="19" y1="12" x2="5" y2="12" /><polyline points="12 19 5 12 12 5" />
+const TitleSection = ({ step }) => {
+  const content = {
+    login: { title: "Admin Portal", sub: "Identification required for access." },
+    setup: { title: "Safety Sync", sub: "Establishing secure communication logs." },
+    otp: { title: "Identity Log", sub: "Confirming 2FA protocol token." },
+    forgot: { title: "Archival Sync", sub: "Recovering lost credentials log." }
+  };
+  const { title, sub } = content[step];
+  return (
+    <div className="space-y-2 animate-in slide-in-from-bottom-2 duration-500">
+      <h2 className="text-4xl font-black text-gray-900 italic tracking-tighter uppercase">{title}</h2>
+      <p className="text-gray-400 font-bold tracking-tight">{sub}</p>
+    </div>
+  );
+};
+
+const SendIcon = ({ className }) => (
+  <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5">
+    <path strokeLinecap="round" strokeLinejoin="round" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
   </svg>
-);
+)
+
+const Pill = ({ className }) => (
+  <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5">
+    <path strokeLinecap="round" strokeLinejoin="round" d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.054.496l-1.058 1.058a2 2 0 00-.547 1.022l-.477 2.387a2 2 0 002.348 2.348l2.387-.477a2 2 0 001.022-.547l1.058-1.058a2 2 0 00.496-1.054l.158-.318a2 2 0 01.517-3.86l.158-.318a2 2 0 00.517-3.86l.158-.318a2 2 0 01.517-3.86l.158-.318a2 2 0 00.517-3.86l.158-.318a2 2 0 01.517-3.86l.158-.318a2 2 0 00-.547-1.022l-1.058-1.058a2 2 0 00-1.022-.547l-2.387-.477a2 2 0 00-2.348 2.348l.477 2.387a2 2 0 00.547 1.022l1.058 1.058a2 2 0 001.022.547l2.387.477a2 2 0 002.348-2.348l-.477-2.387z" />
+  </svg>
+)
 
 export default AdminLoginPage;
