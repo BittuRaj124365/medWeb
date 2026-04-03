@@ -39,12 +39,14 @@ app.use('/api/auth', authRoutes);
 
 // Database connection + startup checks
 const PORT = process.env.PORT || 5000;
-const MONGO_URI = process.env.MONGO_URI || 'mongodb://127.0.0.1:27017/medweb';
+// const MONGO_URI = process.env.MONGO_URI || 'mongodb://127.0.0.1:27017/medweb';
+const MONGO_URI = process.env.MONGO_URI;
+
 
 mongoose.connect(MONGO_URI)
   .then(() => {
     console.log('✅ MongoDB Connected');
-    
+
     // Ensure uploads directory exists
     const uploadsDir = path.join(__dirname, 'uploads');
     if (!fs.existsSync(uploadsDir)) {
@@ -56,7 +58,7 @@ mongoose.connect(MONGO_URI)
 
     // Test email configuration
     if (process.env.EMAIL_USER && process.env.EMAIL_PASS &&
-        process.env.EMAIL_USER !== 'your.gmail@gmail.com') {
+      process.env.EMAIL_USER !== 'your.gmail@gmail.com') {
       const transporter = nodemailer.createTransport({
         host: 'smtp.gmail.com',
         port: 587,
