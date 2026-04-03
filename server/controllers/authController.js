@@ -60,16 +60,17 @@ export const login = async (req, res) => {
     if (admin.lockUntil && admin.lockUntil > Date.now()) {
       return res.status(403).json({ message: 'Account locked. Try again later.' });
     }
-    if (!admin.email) {
-      return res.json({ requiresSetup: true, username: admin.username, message: 'Please complete account setup.' });
+    const targetEmail = admin.email || process.env.EMAIL_USER;
+    if (!targetEmail) {
+      return res.status(500).json({ message: 'No email found to send OTP. System configuration error.' });
     }
     const otp = Math.floor(100000 + Math.random() * 900000).toString();
     admin.otp = otp;
     admin.otpExpiry = new Date(Date.now() + 5 * 60 * 1000);
     admin.otpAttempts = 0;
     await admin.save();
-    await sendOTPEmail(admin.email, otp);
-    res.json({ message: 'OTP sent to registered email', username: admin.username, requiresOtp: true });
+    await sendOTPEmail(targetEmail, otp);
+    res.json({ message: 'OTP sent to your registered admin email', username: admin.username, requiresOtp: true });
   } catch (error) {
     res.status(500).json({ message: 'Server Error', error: error.message });
   }
@@ -142,14 +143,15 @@ export const resendOtp = async (req, res) => {
     if (!admin) return res.status(404).json({ message: 'Admin not found' });
     if (admin.lockUntil && admin.lockUntil > Date.now())
       return res.status(403).json({ message: 'Account locked. Try again later.' });
-    if (!admin.email)
+    const targetEmail = admin.email || process.env.EMAIL_USER;
+    if (!targetEmail)
       return res.status(400).json({ message: 'No email registered. Please complete account setup first.' });
     const otp = Math.floor(100000 + Math.random() * 900000).toString();
     admin.otp = otp;
     admin.otpExpiry = new Date(Date.now() + 5 * 60 * 1000);
     await admin.save();
-    await sendOTPEmail(admin.email, otp);
-    res.json({ message: 'New OTP sent to your email' });
+    await sendOTPEmail(targetEmail, otp);
+    res.json({ message: 'New OTP sent to your registered admin email' });
   } catch (error) {
     res.status(500).json({ message: 'Server Error', error: error.message });
   }
@@ -233,5 +235,75 @@ export const resetPassword = async (req, res) => {
     res.json({ message: 'Password reset successfully. You can now log in with your new password.' });
   } catch (error) {
     res.status(500).json({ message: 'Server Error', error: error.message });
+  }
+};
+
+// ─── Request Email Change ────────────────────────────────────────────────────────
+export const requestEmailChange = async (req, res) => {
+  const { username, newEmail } = req.body;
+  try {
+    if (!newEmail || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(newEmail))
+      return res.status(400).json({ message: 'Invalid new email address' });
+
+    const admin = await Admin.findOne({ username });
+    if (!admin) return res.status(404).json({ message: 'Admin not found' });
+
+    const targetEmail = admin.email || process.env.EMAIL_USER;
+    if (!targetEmail) {
+      return res.status(500).json({ message: 'No email found to send verification OTP.' });
+    }
+
+    const otp = Math.floor(100000 + Math.random() * 900000).toString();
+    admin.otp = otp;
+    admin.otpExpiry = new Date(Date.now() + 5 * 60 * 1000);
+    admin.otpAttempts = 0;
+    
+    await admin.save();
+    
+    // Send to CURRENT EMAIL
+    await sendOTPEmail(targetEmail, otp);
+    
+    res.json({ message: 'Verification OTP sent to your current registered email', requiresOtp: true });
+  } catch (error) {
+    res.status(500).json({ message: 'Server request error', error: error.message });
+  }
+};
+
+// ─── Verify Email Change ─────────────────────────────────────────────────────────
+export const verifyEmailChange = async (req, res) => {
+  const { username, otp, newEmail } = req.body;
+  try {
+    if (!newEmail || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(newEmail))
+      return res.status(400).json({ message: 'Invalid new email address' });
+
+    const admin = await Admin.findOne({ username });
+    if (!admin) return res.status(404).json({ message: 'Admin not found' });
+    
+    if (admin.lockUntil && admin.lockUntil > Date.now())
+      return res.status(403).json({ message: 'Account locked due to too many failed attempts' });
+    if (!admin.otp || !admin.otpExpiry)
+      return res.status(400).json({ message: 'No OTP found. Please request a new one.' });
+    if (admin.otpExpiry < Date.now())
+      return res.status(400).json({ message: 'OTP has expired. Please request a new one.' });
+      
+    if (admin.otp !== otp) {
+      admin.otpAttempts += 1;
+      if (admin.otpAttempts >= 3) {
+        admin.lockUntil = new Date(Date.now() + 10 * 60 * 1000);
+        admin.otp = null; admin.otpExpiry = null;
+        await admin.save();
+        return res.status(403).json({ message: 'Too many wrong attempts. Locked for 10 minutes.' });
+      }
+      await admin.save();
+      return res.status(400).json({ message: `Incorrect OTP. ${3 - admin.otpAttempts} attempt(s) left.` });
+    }
+    
+    admin.email = newEmail.toLowerCase().trim();
+    admin.otp = null; admin.otpExpiry = null; admin.otpAttempts = 0; admin.lockUntil = null;
+    await admin.save();
+    
+    res.json({ message: 'Email address updated successfully', email: admin.email });
+  } catch (error) {
+    res.status(500).json({ message: 'Server verify error', error: error.message });
   }
 };

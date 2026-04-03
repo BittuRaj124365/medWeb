@@ -12,12 +12,14 @@ import {
 } from 'recharts';
 import apiClient from '../../api/apiClient';
 import { GraphSkeleton } from '../LoadingSkeleton';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useOutletContext } from 'react-router-dom';
 
 const COLORS = ['#0D9488', '#0EA5E9', '#8B5CF6', '#F59E0B', '#EF4444', '#10B981', '#6366F1'];
 
 const OverviewTab = () => {
   const navigate = useNavigate();
+  const { adminData } = useOutletContext();
+  
   const { data: reports, isLoading: isLoadingStats } = useQuery({
     queryKey: ['adminReports'],
     queryFn: async () => (await apiClient.get('/admin/reports')).data
@@ -31,17 +33,31 @@ const OverviewTab = () => {
   return (
     <div className="space-y-16 pb-24 animate-in fade-in duration-1000">
       
+      {/* ── WELCOME HEADER ── */}
+      <section className="relative overflow-hidden bg-gray-900 rounded-[40px] p-8 lg:p-12 text-white group shadow-2xl">
+          <div className="absolute top-0 right-0 p-12 text-white/5 group-hover:rotate-12 transition-transform duration-1000"><Globe className="w-64 h-64" /></div>
+          <div className="relative z-10 space-y-4">
+              <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-teal-500/20 border border-teal-500/30 text-teal-400 text-[10px] font-black uppercase tracking-widest">
+                  <Sparkles className="w-4 h-4" /> Systems Operational
+              </div>
+              <h1 className="text-4xl lg:text-6xl font-black italic tracking-tighter uppercase leading-none">
+                  Welcome back, <span className="text-teal-500">{adminData?.username || 'Admin'}</span>
+              </h1>
+              <p className="text-gray-400 font-semibold max-w-lg leading-relaxed italic">Your clinical terminal is synchronized. Monitor stock velocity, patient feedback, and system integrity from this central overview.</p>
+          </div>
+      </section>
+
       {/* ── HIGH IMPACT METRICS ── */}
       <section>
         <div className="flex items-center justify-between mb-10">
             <div>
                 <h2 className="text-3xl font-black text-gray-900 tracking-tighter italic uppercase flex items-center gap-4">
-                  <div className="w-1.5 h-1.5 bg-primary rounded-full" />
-                  Clinical Metrics
+                  <div className="w-1.5 h-1.5 bg-teal-500 rounded-full" />
+                  Inventory Ledger
                 </h2>
-                <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mt-2 ml-5">Key Performance Log • Live Sync</p>
+                <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mt-2 ml-5 italic">Global Stock Aggregation</p>
             </div>
-            <button className="p-3 bg-white border border-gray-100 rounded-2xl shadow-sm text-gray-400 hover:text-primary transition-all active:scale-95">
+            <button className="p-3 bg-white border border-gray-100 rounded-2xl shadow-sm text-gray-400 hover:text-teal-600 transition-all active:scale-95">
                 <RefreshCw className="w-5 h-5" />
             </button>
         </div>
@@ -110,7 +126,7 @@ const OverviewTab = () => {
       {/* ── ANALYTICAL VISUALIZATIONS ── */}
       <section className="space-y-10">
         <div className="flex items-center gap-4">
-            <h2 className="text-2xl font-black text-gray-900 tracking-tight italic uppercase">Analytical Intelligence</h2>
+            <h2 className="text-2xl font-black text-gray-900 tracking-tight italic uppercase">Usage Analytics</h2>
             <div className="h-px bg-gray-100 flex-1" />
         </div>
         
@@ -154,7 +170,7 @@ const OverviewTab = () => {
             </ChartContainer>
 
             {/* 3. Interest Analytics */}
-            <ChartContainer title="Market Interest Logs" subTitle="Comparison of views vs searches" icon={<Zap className="w-5 h-5 text-amber-500"/>}>
+            <ChartContainer title="Popular Search Terms" subTitle="Comparison of views vs searches" icon={<Zap className="w-5 h-5 text-amber-500"/>}>
               <ResponsiveContainer width="100%" height={360}>
                 <ComposedChart data={graphData?.mostViewed?.slice(0, 6)} layout="vertical" margin={{ left: 20 }}>
                     <XAxis type="number" hide />
@@ -166,7 +182,7 @@ const OverviewTab = () => {
             </ChartContainer>
 
             {/* 4. Veracity Distribution */}
-            <ChartContainer title="Veracity Confidence" subTitle="Feedback rating distribution logs" icon={<ShieldCheck className="w-5 h-5 text-emerald-500"/>}>
+            <ChartContainer title="Customer Ratings" subTitle="Feedback rating distribution" icon={<ShieldCheck className="w-5 h-5 text-emerald-500"/>}>
               <div className="flex flex-col md:flex-row items-center justify-center">
                   <ResponsiveContainer width="100%" height={360}>
                     <PieChart>
@@ -181,6 +197,18 @@ const OverviewTab = () => {
                   </ResponsiveContainer>
               </div>
             </ChartContainer>
+
+            {/* 5. Most Liked Leaderboard */}
+            <ChartContainer title="Most Liked Inventory" subTitle="Top Patient Preferences" icon={<TrendingUp className="w-5 h-5 text-teal-500"/>}>
+              <ResponsiveContainer width="100%" height={360}>
+                <ComposedChart data={reports?.mostLiked?.slice(0, 5)} layout="vertical" margin={{ left: 20 }}>
+                    <XAxis type="number" hide />
+                    <YAxis dataKey="name" type="category" axisLine={false} tickLine={false} tick={{fontSize: 10, fontWeight: 900, fill: '#94a3b8', width: 100}} width={120} />
+                    <Tooltip content={<CustomTooltip />} />
+                    <Bar dataKey="likes" fill="#14b8a6" radius={[0, 10, 10, 0]} barSize={20} />
+                </ComposedChart>
+              </ResponsiveContainer>
+            </ChartContainer>
           </div>
         )}
       </section>
@@ -192,7 +220,7 @@ const OverviewTab = () => {
         <div className="xl:col-span-2 space-y-8">
             <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
                 <h2 className="text-xl lg:text-3xl font-black text-gray-900 italic tracking-tighter uppercase flex items-center gap-4">
-                    <CalendarClock className="w-6 h-6 lg:w-8 lg:h-8 text-rose-500" /> Near Expiry Alerts
+                    <CalendarClock className="w-6 h-6 lg:w-8 lg:h-8 text-rose-500" /> Expiring Soon
                 </h2>
                 <button 
                   onClick={() => navigate('/admin/dashboard/medicines')}
@@ -230,7 +258,7 @@ const OverviewTab = () => {
                               </td>
                               <td className="py-6 px-10">
                                 <span className={`inline-flex items-center gap-2 px-4 py-1.5 rounded-full text-[9px] font-black uppercase tracking-widest ${isExpired ? 'bg-red-50 text-red-600 border border-red-100' : 'bg-amber-50 text-amber-600 border border-amber-100'}`}>
-                                    {isExpired ? 'Terminated' : 'Near Expiry'}
+                                    {isExpired ? 'Expired' : 'Near Expiry'}
                                 </span>
                               </td>
                               <td className="py-6 px-10 text-sm font-bold text-gray-500 italic">
@@ -253,8 +281,8 @@ const OverviewTab = () => {
                             <ShieldCheck className="w-10 h-10" />
                         </div>
                         <div className="space-y-2">
-                            <h3 className="text-2xl font-black text-gray-900 italic tracking-tighter uppercase">Inventory Secure</h3>
-                            <p className="text-gray-400 font-semibold max-w-sm mx-auto">All active pharmaceutical assets are currently within safe shelf-life parameters.</p>
+                            <h3 className="text-2xl font-black text-gray-900 italic tracking-tighter uppercase">Status Healthy</h3>
+                            <p className="text-gray-400 font-semibold max-w-sm mx-auto">All medicines are currently within safe shelf-life parameters.</p>
                         </div>
                     </div>
                 )}
@@ -264,24 +292,24 @@ const OverviewTab = () => {
         {/* Top Assets Snippet */}
         <div className="space-y-8">
             <h2 className="text-xl font-black text-gray-900 italic tracking-tighter uppercase flex items-center gap-3">
-                <Sparkles className="w-6 h-6 text-indigo-500" /> High Activity
+                <Sparkles className="w-6 h-6 text-indigo-500" /> Popular Medicines
             </h2>
             
             <div className="space-y-6">
                 <div className="bg-white p-8 rounded-[40px] border border-gray-100 shadow-premium space-y-6 group">
                    <div className="flex items-center justify-between border-b border-gray-50 pb-4">
-                        <h3 className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Most Viewed Asset</h3>
+                        <h3 className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Most Viewed</h3>
                         <Eye className="w-4 h-4 text-indigo-400 animate-pulse" />
                    </div>
                    {reports?.mostViewed?.length > 0 ? (
                        <div className="flex items-center justify-between">
                             <div>
                                 <div className="text-xl font-black text-gray-900 italic uppercase">{reports.mostViewed[0].name}</div>
-                                <div className="text-[9px] font-black text-gray-300 uppercase tracking-widest mt-1">Global Interaction Log</div>
+                                <div className="text-[9px] font-black text-gray-300 uppercase tracking-widest mt-1">Total Page Views</div>
                             </div>
                             <div className="text-4xl font-black text-indigo-600 tracking-tighter italic tabular-nums">{reports.mostViewed[0].viewCount}</div>
                        </div>
-                   ) : <p className="text-xs text-gray-300">No telemetry log found.</p>}
+                   ) : <p className="text-xs text-gray-300">No views yet.</p>}
                 </div>
 
                 <div className="bg-white p-8 rounded-[40px] border border-gray-100 shadow-premium space-y-6 group">
@@ -300,14 +328,35 @@ const OverviewTab = () => {
                    ) : <p className="text-xs text-gray-300">No search log synced.</p>}
                 </div>
 
+                <div className="bg-white p-8 rounded-[40px] border border-gray-100 shadow-premium space-y-6 group">
+                   <div className="flex items-center justify-between border-b border-gray-50 pb-4">
+                        <h3 className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Most Liked</h3>
+                        <TrendingUp className="w-4 h-4 text-teal-400 animate-bounce" />
+                   </div>
+                   {reports?.mostLiked?.length > 0 ? (
+                       <div className="flex items-center justify-between">
+                            <div>
+                                <div className="text-xl font-black text-gray-900 italic uppercase">{reports.mostLiked[0].name}</div>
+                                <div className="text-[9px] font-black text-gray-300 uppercase tracking-widest mt-1">Patient Preference Stats</div>
+                            </div>
+                            <div className="text-4xl font-black text-teal-600 tracking-tighter italic tabular-nums">{reports.mostLiked[0].likes}</div>
+                       </div>
+                   ) : (
+                       <div className="flex items-center justify-between">
+                          <p className="text-xs text-gray-300 italic">No likes recorded yet.</p>
+                          <div className="text-4xl font-black text-gray-100 italic tabular-nums">0</div>
+                       </div>
+                   )}
+                </div>
+
                 <div className="bg-gray-900 p-10 rounded-[48px] shadow-2xl relative overflow-hidden group">
                     <div className="absolute top-0 right-0 p-8 text-white/5 group-hover:rotate-12 transition-transform duration-700"><Globe className="w-32 h-32" /></div>
                     <div className="relative z-10 space-y-6">
                         <div className="w-12 h-12 bg-white/10 rounded-2xl flex items-center justify-center text-primary"><ShieldCheck className="w-6 h-6" /></div>
-                        <h3 className="text-2xl font-black text-white italic tracking-tighter leading-none uppercase">Global <br /> Synchronization</h3>
-                        <p className="text-gray-400 text-xs font-semibold leading-relaxed">System logs are synchronized with central clinical headquarters every 300 seconds.</p>
+                        <h3 className="text-2xl font-black text-white italic tracking-tighter leading-none uppercase">System Status</h3>
+                        <p className="text-gray-400 text-xs font-semibold leading-relaxed">System logs are synchronized with the main server every 300 seconds.</p>
                         <button className="text-[10px] font-black text-primary uppercase tracking-widest flex items-center gap-2 hover:translate-x-2 transition-transform">
-                            Full Terminal Log <ChevronRight className="w-4 h-4" />
+                            View System Logs <ChevronRight className="w-4 h-4" />
                         </button>
                     </div>
                 </div>

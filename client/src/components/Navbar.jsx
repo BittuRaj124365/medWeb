@@ -98,10 +98,18 @@ const Navbar = () => {
                   type="text"
                   value={searchVal}
                   placeholder="Search your medicine..."
-                  className="w-full pl-11 pr-4 py-2.5 text-sm bg-gray-50 border border-gray-100 rounded-full focus:outline-none focus:ring-4 focus:ring-primary/5 focus:border-primary/30 transition-all font-medium"
+                  className="w-full pl-11 pr-12 py-2.5 text-sm bg-gray-50 border border-gray-100 rounded-full focus:outline-none focus:ring-4 focus:ring-primary/5 focus:border-primary/30 transition-all font-medium"
                   onChange={(e) => handleSearch(e.target.value)}
                   onKeyDown={handleKeyDown}
                 />
+                {searchVal && (
+                  <button 
+                    onClick={() => handleSearch('')}
+                    className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-red-500 transition-colors p-1"
+                  >
+                    <X className="w-4 h-4" />
+                  </button>
+                )}
               </div>
 
               {/* Actions */}
@@ -153,10 +161,18 @@ const Navbar = () => {
                   autoFocus
                   value={searchVal}
                   placeholder="What are you looking for?"
-                  className="w-full pl-12 pr-4 py-3 text-base bg-gray-50 border border-gray-100 rounded-2xl focus:outline-none focus:ring-4 focus:ring-primary/5"
+                  className="w-full pl-12 pr-12 py-3 text-base bg-gray-50 border border-gray-100 rounded-2xl focus:outline-none focus:ring-4 focus:ring-primary/5"
                   onChange={(e) => handleSearch(e.target.value)}
                   onKeyDown={handleKeyDown}
                 />
+                {searchVal && (
+                  <button 
+                    onClick={() => handleSearch('')}
+                    className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-red-500 bg-gray-100 rounded-full p-1"
+                  >
+                    <X className="w-4 h-4" />
+                  </button>
+                )}
               </div>
             </div>
           </div>

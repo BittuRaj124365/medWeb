@@ -55,6 +55,7 @@ const medicineSchema = new mongoose.Schema({
   description: { type: String, default: '' },
   usageInstructions: { type: String, default: '' },
   imageUrl: { type: String, default: '' },
+  likes: { type: Number, default: 0 },
   isAvailable: { type: Boolean, default: false }
 }, { timestamps: true });
 

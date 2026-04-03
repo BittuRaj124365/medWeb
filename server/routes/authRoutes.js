@@ -1,6 +1,6 @@
 import express from 'express';
 import rateLimit from 'express-rate-limit';
-import { login, verifyOtp, resendOtp, setupEmail, forgotPassword, resetPassword } from '../controllers/authController.js';
+import { login, verifyOtp, resendOtp, setupEmail, forgotPassword, resetPassword, requestEmailChange, verifyEmailChange } from '../controllers/authController.js';
 
 const router = express.Router();
 
@@ -15,5 +15,7 @@ router.post('/verify-otp',      verifyLimiter, verifyOtp);
 router.post('/resend-otp',      resendLimiter, resendOtp);
 router.post('/forgot-password', resetLimiter,  forgotPassword);
 router.post('/reset-password',  resetLimiter,  resetPassword);
+router.post('/request-email-change', setupLimiter, requestEmailChange);
+router.post('/verify-email-change', verifyLimiter, verifyEmailChange);
 
 export default router;

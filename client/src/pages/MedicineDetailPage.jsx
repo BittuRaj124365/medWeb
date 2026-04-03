@@ -5,7 +5,8 @@ import {
   ArrowLeft, Tag, Calendar, Package, Info, CheckCircle2, XCircle, 
   AlertCircle, ShoppingCart, Star, MessageSquare, Flag, X, 
   ChevronDown, Share2, ShieldCheck, Truck, RotateCcw, 
-  History, Stethoscope, ChevronRight, Send, User, ChevronLeft
+  History, Stethoscope, ChevronRight, Send, User, ChevronLeft,
+  Loader2, Heart, Minus, Mail
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import apiClient from '../api/apiClient';
@@ -31,6 +32,10 @@ const MedicineDetailPage = () => {
   const [reportForm, setReportForm] = useState({ reason: '', additionalDetails: '', reporterName: '', reporterEmail: '' });
   const [reportErrors, setReportErrors] = useState({});
   const [activeTab, setActiveTab] = useState('overview'); // 'overview', 'details', 'usage', 'reviews'
+  
+  const [isLiked, setIsLiked] = useState(false);
+  const [likesCount, setLikesCount] = useState(0);
+  const [isPopping, setIsPopping] = useState(false);
 
   const { data: medicine, isLoading, isError } = useQuery({
     queryKey: ['medicine', id],
@@ -43,24 +48,108 @@ const MedicineDetailPage = () => {
     }
   });
 
-  const { data: feedbacks, isLoading: loadingFeedbacks } = useQuery({
-    queryKey: ['feedbacks', id],
-    queryFn: async () => {
-      const res = await apiClient.get(`/medicines/${id}/feedbacks`);
-      return res.data;
-    },
-    enabled: !!id
-  });
+  // Paginated reviews state
+  const [reviews, setReviews] = useState([]);
+  const [reviewPage, setReviewPage] = useState(1);
+  const [hasMoreReviews, setHasMoreReviews] = useState(true);
+  const [isLoadingMore, setIsLoadingMore] = useState(false);
+  const [totalReviewCount, setTotalReviewCount] = useState(0);
+  const [loadingInitialReviews, setLoadingInitialReviews] = useState(true);
+  const [serverRatingStats, setServerRatingStats] = useState({ 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 });
+
+  // Fetch initial reviews
+  useEffect(() => {
+    if (!id) return;
+    const fetchInitialReviews = async () => {
+      setLoadingInitialReviews(true);
+      try {
+        const res = await apiClient.get(`/medicines/${id}/feedbacks?page=1&limit=3`);
+        if (res.data?.feedbacks) {
+          setReviews(res.data.feedbacks);
+          setHasMoreReviews(res.data.hasMore);
+          setTotalReviewCount(res.data.total);
+          if (res.data.ratingStats) {
+            setServerRatingStats(res.data.ratingStats);
+          }
+          setReviewPage(1);
+        }
+      } catch (err) {
+        console.error('Failed to fetch reviews', err);
+      } finally {
+        setLoadingInitialReviews(false);
+      }
+    };
+    fetchInitialReviews();
+  }, [id]);
+
+  const handleLoadMoreReviews = async () => {
+    if (isLoadingMore || !hasMoreReviews) return;
+    setIsLoadingMore(true);
+    try {
+      const nextPage = reviewPage + 1;
+      const res = await apiClient.get(`/medicines/${id}/feedbacks?page=${nextPage}&limit=3`);
+      if (res.data?.feedbacks) {
+        setReviews(prev => [...prev, ...res.data.feedbacks]);
+        setReviewPage(nextPage);
+        setHasMoreReviews(res.data.hasMore);
+        setTotalReviewCount(res.data.total);
+      } else {
+        setHasMoreReviews(false);
+      }
+    } catch (err) {
+      toast.error('Failed to load more reviews');
+    } finally {
+      setIsLoadingMore(false);
+    }
+  };
+
+  const handleHideReviews = () => {
+    setReviews(prev => prev.slice(0, 3));
+    setReviewPage(1);
+    setHasMoreReviews(totalReviewCount > 3);
+  };
 
   const feedbackMutation = useMutation({
     mutationFn: (data) => apiClient.post(`/medicines/${id}/feedbacks`, data),
     onSuccess: () => {
-      toast.success('Clinical review submitted for verification!', { icon: '📝' });
+      toast.success('Review submitted for verification!', { icon: '📝' });
       setFeedbackForm({ rating: 5, message: '', userName: '', userEmail: '' });
       queryClient.invalidateQueries(['feedbacks', id]);
     },
     onError: (err) => toast.error(err.response?.data?.message || 'Verification system error')
   });
+
+  useEffect(() => {
+    if (medicine) {
+      setLikesCount(medicine.likes || 0);
+      const likedItems = JSON.parse(localStorage.getItem('likedMedicines') || '[]');
+      setIsLiked(likedItems.includes(id));
+    }
+  }, [medicine, id]);
+
+  const toggleLike = async () => {
+    try {
+      const endpoint = isLiked ? 'unlike' : 'like';
+      const res = await apiClient.post(`/medicines/${id}/${endpoint}`);
+      
+      const newCount = res.data.likes;
+      setLikesCount(newCount);
+      setIsLiked(!isLiked);
+      setIsPopping(true);
+      setTimeout(() => setIsPopping(false), 300);
+
+      const likedItems = JSON.parse(localStorage.getItem('likedMedicines') || '[]');
+      if (isLiked) {
+        const updated = likedItems.filter(item => item !== id);
+        localStorage.setItem('likedMedicines', JSON.stringify(updated));
+      } else {
+        likedItems.push(id);
+        localStorage.setItem('likedMedicines', JSON.stringify(likedItems));
+      }
+    } catch (err) {
+      toast.error('Network Error: Like system currently offline');
+    }
+  };
 
   const reportMutation = useMutation({
     mutationFn: (data) => apiClient.post(`/medicines/${id}/report`, data),
@@ -137,6 +226,10 @@ const MedicineDetailPage = () => {
   const formatDate = (d) => !d ? 'N/A' : new Date(d).toLocaleDateString('en-IN', { year: 'numeric', month: 'short', day: 'numeric' });
   const formatPrice = (p) => `₹${Number(p).toFixed(2)}`;
 
+  const ratingStats = serverRatingStats;
+
+  const totalReviews = totalReviewCount;
+
   return (
     <div className="bg-white min-h-screen">
       {/* ── BREADCRUMBS & TOP NAV ── */}
@@ -150,8 +243,11 @@ const MedicineDetailPage = () => {
          </nav>
          
          <div className="flex items-center gap-2">
-            <button className="p-3 bg-gray-50 hover:bg-gray-100 rounded-2xl transition-all" title="Share Experience">
-                <Share2 className="w-4 h-4 text-gray-400" />
+            <button 
+                onClick={() => document.getElementById('feedback-section')?.scrollIntoView({ behavior: 'smooth' })}
+                className="p-3 bg-gray-50 hover:bg-gray-100 group rounded-2xl transition-all" title="Add Review"
+            >
+                <MessageSquare className="w-4 h-4 text-gray-400 group-hover:text-primary transition-colors" />
             </button>
             <button 
                 onClick={() => setShowReportModal(true)}
@@ -222,7 +318,7 @@ const MedicineDetailPage = () => {
                         </div>
                         <div className="flex items-center text-amber-500 gap-1 pl-2">
                             <Star className="w-4 h-4 fill-amber-500" />
-                            <span className="text-xs font-black text-gray-900 pt-0.5 tracking-tighter">4.9/5</span>
+                            <span className="text-xs font-black text-gray-900 pt-0.5 tracking-tighter">{(medicine.averageRating || 0).toFixed(1)}/5</span>
                             <span className="text-[9px] font-black text-gray-400 uppercase tracking-widest pt-0.5 ml-1">Choice</span>
                         </div>
                     </div>
@@ -273,8 +369,14 @@ const MedicineDetailPage = () => {
                       {isOutOfStock ? 'Inventory Exhausted' : 'Confirm & Add to Bag'}
                     </button>
                     
-                    <button className="h-20 px-10 border-2 border-gray-100 rounded-[32px] text-gray-400 hover:text-red-500 hover:border-red-100 transition-all flex items-center justify-center">
-                        <Heart className="w-6 h-6" />
+                    <button 
+                        onClick={toggleLike}
+                        className={`h-20 px-8 border-2 rounded-[32px] transition-all flex items-center justify-center gap-4 ${
+                            isLiked ? 'border-primary/20 bg-primary/5 text-primary' : 'border-gray-100 text-gray-400 hover:text-red-500 hover:border-red-100'
+                        }`}
+                    >
+                        <Heart className={`w-6 h-6 transition-transform duration-300 ${isLiked ? 'fill-primary' : ''} ${isPopping ? 'scale-150 rotate-12' : 'scale-100'}`} />
+                        <span className="text-sm font-black pt-0.5">{likesCount}</span>
                     </button>
                 </div>
 
@@ -299,10 +401,9 @@ const MedicineDetailPage = () => {
                 <div className="pt-10">
                     <div className="flex items-center gap-8 border-b border-gray-100 mb-8 overflow-x-auto no-scrollbar">
                         {[
-                            { id: 'overview', label: 'Clinical Overview' },
-                            { id: 'details', label: 'Safety Details' },
-                            { id: 'usage', label: 'Usage Logs' },
-                            { id: 'reviews', label: `Veracity Logs (${feedbacks?.length || 0})` }
+                            { id: 'overview', label: 'Overall Summary' },
+                            { id: 'details', label: 'Medicine Details' },
+                            { id: 'usage', label: 'Usage Guide' }
                         ].map((tab) => (
                             <button
                                 key={tab.id}
@@ -402,114 +503,152 @@ const MedicineDetailPage = () => {
                             </div>
                         )}
 
-                        {activeTab === 'reviews' && (
-                            <div className="space-y-12">
-                                {/* Writing Review Toggle */}
-                                <div className="bg-white rounded-[40px] border border-gray-100 shadow-premium p-10 space-y-8">
-                                    <div className="text-center space-y-3">
-                                        <h3 className="text-3xl font-black text-gray-900 tracking-tighter italic">Log Your Experience</h3>
-                                        <p className="text-gray-400 font-medium text-sm">Contribute to the collective clinical intelligence of our community.</p>
+                    </div>
+
+                    {/* ── REVIEWS & RATINGS SECTION ── */}
+                    <div id="feedback-section" className="mt-20 pt-20 border-t border-gray-100 space-y-12 animate-in fade-in slide-in-from-bottom-12 duration-1000">
+                        
+                        {/* Section Header */}
+                        <div className="space-y-4">
+                            <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-amber-50 border border-amber-100 text-amber-500 text-[10px] font-black uppercase tracking-widest">
+                                <Star className="w-4 h-4 fill-amber-500" /> Reviews & Ratings
+                            </div>
+                            <h2 className="text-4xl font-black text-gray-900 tracking-tight">What Patients Say</h2>
+                            <p className="text-gray-500 font-medium max-w-lg leading-relaxed">Real reviews from verified patients. Share your experience to help others.</p>
+                        </div>
+
+                        {/* Rating Summary Card */}
+                        <div className="bg-gray-50 rounded-[40px] p-8 md:p-12 border border-gray-100">
+                            <div className="flex flex-col md:flex-row items-center gap-10">
+                                <div className="text-center shrink-0 space-y-3">
+                                    <div className="text-7xl font-black text-gray-900 tracking-tighter">{(medicine.averageRating || 0).toFixed(1)}</div>
+                                    <div className="flex items-center justify-center gap-1">
+                                        {[1, 2, 3, 4, 5].map(star => (
+                                            <Star key={star} className={`w-6 h-6 ${star <= Math.round(medicine.averageRating || 0) ? 'fill-amber-400 text-amber-400' : 'fill-gray-200 text-gray-200'}`} />
+                                        ))}
                                     </div>
-
-                                    <form onSubmit={handleFeedbackSubmit} className="space-y-8">
-                                        <div className="flex flex-col items-center gap-6 pb-6 border-b border-gray-50">
-                                            <div className="flex items-center gap-2">
-                                                {[1, 2, 3, 4, 5].map(star => (
-                                                    <button type="button" key={star} onClick={() => setFeedbackForm({...feedbackForm, rating: star})} className="p-2 transition-all hover:scale-125 focus:outline-none">
-                                                    <Star className={`w-10 h-10 ${star <= feedbackForm.rating ? 'fill-amber-400 text-amber-400' : 'fill-gray-100 text-gray-100'}`} />
-                                                    </button>
-                                                ))}
-                                            </div>
-                                            <div className="text-[10px] font-black text-gray-300 uppercase tracking-[0.4em]">Therapeutic Experience Rating</div>
-                                        </div>
-
-                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                            <div className="space-y-3">
-                                                <label className="text-[10px] font-black uppercase tracking-widest text-gray-400 pl-4">Your Identity</label>
-                                                <div className="relative group">
-                                                    <User className="absolute left-6 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-300 group-focus-within:text-primary transition-colors" />
-                                                    <input required type="text" value={feedbackForm.userName} onChange={e => setFeedbackForm({...feedbackForm, userName: e.target.value})} className="w-full pl-14 pr-6 py-5 bg-gray-50 border border-gray-100 rounded-2xl outline-none focus:bg-white focus:ring-4 focus:ring-primary/5 transition-all font-bold text-sm" placeholder="Anonymous Patient" />
-                                                </div>
-                                            </div>
-                                            <div className="space-y-3">
-                                                <label className="text-[10px] font-black uppercase tracking-widest text-gray-400 pl-4">Contact Logic (Optional)</label>
-                                                <div className="relative group">
-                                                    <Mail className="absolute left-6 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-300 group-focus-within:text-primary transition-colors" />
-                                                    <input type="email" value={feedbackForm.userEmail} onChange={e => setFeedbackForm({...feedbackForm, userEmail: e.target.value})} className="w-full pl-14 pr-6 py-5 bg-gray-50 border border-gray-100 rounded-2xl outline-none focus:bg-white focus:ring-4 focus:ring-primary/5 transition-all font-bold text-sm" placeholder="patient@clinical-sync.net" />
-                                                </div>
-                                            </div>
-                                        </div>
-
-                                        <div className="space-y-3">
-                                            <label className="text-[10px] font-black uppercase tracking-widest text-gray-400 pl-4">Clinical Observations</label>
-                                            <textarea value={feedbackForm.message} onChange={e => setFeedbackForm({...feedbackForm, message: e.target.value})} className="w-full p-8 bg-gray-50 border border-gray-100 rounded-[32px] outline-none focus:bg-white focus:ring-4 focus:ring-primary/5 transition-all font-bold text-sm resize-none" rows="4" placeholder="Describe the therapeutic efficacy or any logistical notes..."></textarea>
-                                        </div>
-
-                                        <button type="submit" disabled={feedbackMutation.isLoading} className="w-full h-20 bg-gray-900 text-white font-black text-xs uppercase tracking-[0.3em] rounded-[32px] hover:bg-black shadow-2xl transition-all flex items-center justify-center gap-4 active:scale-[0.98] disabled:opacity-50">
-                                            {feedbackMutation.isLoading ? <Loader2 className="w-5 h-5 animate-spin" /> : <>Log Verification <Send className="w-4 h-4" /></>}
-                                        </button>
-                                    </form>
+                                    <div className="text-[10px] font-black text-gray-400 uppercase tracking-widest">{totalReviews} Review{totalReviews !== 1 ? 's' : ''}</div>
                                 </div>
-
-                                {/* Reviews List */}
-                                <div className="space-y-10">
-                                    <h4 className="text-xl font-black text-gray-900 uppercase tracking-widest">Veracity Feed ({feedbacks?.length || 0})</h4>
-                                    
-                                    {loadingFeedbacks ? (
-                                        <div className="space-y-6">
-                                            {[1,2].map(i => <div key={i} className="h-40 bg-gray-50 rounded-[32px] animate-pulse" />)}
+                                <div className="flex-1 w-full space-y-3">
+                                    {[5, 4, 3, 2, 1].map(star => (
+                                        <div key={star} className="flex items-center gap-4">
+                                            <div className="text-xs font-black text-gray-500 w-6 text-right flex items-center gap-1">{star} <Star className="w-3 h-3 fill-gray-300 text-gray-300" /></div>
+                                            <div className="flex-1 h-2.5 bg-gray-200 rounded-full overflow-hidden">
+                                                <div className="h-full bg-amber-400 rounded-full transition-all duration-1000" style={{ width: `${totalReviews > 0 ? (ratingStats[star] / totalReviews) * 100 : 0}%` }} />
+                                            </div>
+                                            <div className="text-xs font-black text-gray-400 w-8 text-right">{ratingStats[star]}</div>
                                         </div>
-                                    ) : feedbacks?.length === 0 ? (
-                                        <div className="text-center p-20 bg-gray-50 rounded-[60px] border border-dashed border-gray-200">
-                                            <div className="p-8 bg-white inline-block rounded-[40px] shadow-sm mb-6 text-gray-200"><MessageSquare className="w-16 h-16" /></div>
-                                            <h5 className="text-2xl font-black text-gray-900 tracking-tight">Log History Clear</h5>
-                                            <p className="text-gray-500 font-medium">Be the first to provide clinical feedback for this medication.</p>
-                                        </div>
-                                    ) : (
-                                        <div className="grid grid-cols-1 gap-8">
-                                            {feedbacks?.map((fb, idx) => (
-                                                <div key={fb._id} className="bg-white p-10 rounded-[48px] border border-gray-100 shadow-premium group animate-in slide-in-from-bottom-8 duration-700" style={{ animationDelay: `${idx * 100}ms` }}>
-                                                    <div className="flex flex-col sm:flex-row justify-between items-start gap-6 mb-8">
-                                                        <div className="flex items-center gap-5">
-                                                            <div className="w-16 h-16 bg-primary/5 rounded-[24px] flex items-center justify-center font-black text-primary text-2xl border border-primary/10">
-                                                                {fb.userName.charAt(0)}
-                                                            </div>
-                                                            <div>
-                                                                <h5 className="text-xl font-black text-gray-900 italic tracking-tight">{fb.userName}</h5>
-                                                                <div className="text-[10px] font-black text-gray-400 uppercase tracking-widest flex items-center gap-2 mt-1">
-                                                                    <Calendar className="w-3.5 h-3.5" /> {formatDate(fb.dateSubmitted)}
-                                                                </div>
-                                                            </div>
-                                                        </div>
-                                                        <div className="flex items-center gap-1.5 p-3 px-5 bg-gray-50 rounded-2xl border border-gray-100">
-                                                            {[...Array(5)].map((_, i) => (
-                                                                <Star key={i} className={`w-4 h-4 ${i < fb.rating ? 'fill-amber-400 text-amber-400' : 'fill-gray-200 text-gray-200'}`} />
-                                                            ))}
-                                                        </div>
-                                                    </div>
-                                                    {fb.message && (
-                                                        <p className="text-gray-600 font-semibold leading-relaxed text-lg italic border-l-4 border-primary/20 pl-8 bg-gray-50/50 p-8 rounded-r-[32px]">
-                                                            "{fb.message}"
-                                                        </p>
-                                                    )}
-                                                    <div className="mt-8 flex items-center justify-between text-[10px] font-black uppercase tracking-widest text-gray-300">
-                                                        <div className="flex items-center gap-2">
-                                                            <CheckCircle2 className="w-4 h-4 text-emerald-500" /> Community Verified Purchase
-                                                        </div>
-                                                        <div className="group-hover:text-primary transition-colors cursor-pointer">Helpful (0)</div>
-                                                    </div>
-                                                </div>
-                                            ))}
-                                        </div>
-                                    )}
+                                    ))}
                                 </div>
                             </div>
-                        )}
+                        </div>
+
+                        {/* Write a Review Card */}
+                        <div className="bg-white rounded-[40px] border border-gray-100 shadow-premium p-8 md:p-10">
+                            <h3 className="text-xl font-black text-gray-900 mb-8 flex items-center gap-3">
+                                <MessageSquare className="w-5 h-5 text-primary" /> Write a Review
+                            </h3>
+                            <form onSubmit={handleFeedbackSubmit} className="space-y-6">
+                                <div className="flex items-center gap-3">
+                                    <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest shrink-0">Your Rating</span>
+                                    <div className="flex items-center gap-1">
+                                        {[1, 2, 3, 4, 5].map(star => (
+                                            <button type="button" key={star} onClick={() => setFeedbackForm({...feedbackForm, rating: star})} className="p-0.5 transition-all hover:scale-125 focus:outline-none rounded">
+                                                <Star className={`w-8 h-8 ${star <= feedbackForm.rating ? 'fill-amber-400 text-amber-400' : 'fill-gray-100 text-gray-100'}`} />
+                                            </button>
+                                        ))}
+                                    </div>
+                                </div>
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                    <div className="space-y-2">
+                                        <label className="text-[10px] font-black uppercase tracking-widest text-gray-400 pl-1">Your Name</label>
+                                        <div className="relative">
+                                            <User className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-300" />
+                                            <input required type="text" value={feedbackForm.userName} onChange={e => setFeedbackForm({...feedbackForm, userName: e.target.value})} className="w-full pl-11 pr-4 py-4 bg-gray-50 border border-transparent rounded-2xl outline-none focus:bg-white focus:border-gray-200 focus:ring-4 focus:ring-primary/5 transition-all font-bold text-sm" placeholder="Enter your name" />
+                                        </div>
+                                    </div>
+                                    <div className="space-y-2">
+                                        <label className="text-[10px] font-black uppercase tracking-widest text-gray-400 pl-1">Email <span className="text-gray-300">(optional)</span></label>
+                                        <div className="relative">
+                                            <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-300" />
+                                            <input type="email" value={feedbackForm.userEmail} onChange={e => setFeedbackForm({...feedbackForm, userEmail: e.target.value})} className="w-full pl-11 pr-4 py-4 bg-gray-50 border border-transparent rounded-2xl outline-none focus:bg-white focus:border-gray-200 focus:ring-4 focus:ring-primary/5 transition-all font-bold text-sm" placeholder="your@email.com" />
+                                        </div>
+                                    </div>
+                                </div>
+                                <div className="space-y-2">
+                                    <label className="text-[10px] font-black uppercase tracking-widest text-gray-400 pl-1">Your Review</label>
+                                    <textarea value={feedbackForm.message} onChange={e => setFeedbackForm({...feedbackForm, message: e.target.value})} className="w-full p-5 bg-gray-50 border border-transparent rounded-[20px] outline-none focus:bg-white focus:border-gray-200 focus:ring-4 focus:ring-primary/5 transition-all font-medium text-sm resize-none" rows="4" placeholder="Share your experience with this medicine..." />
+                                </div>
+                                <button type="submit" disabled={feedbackMutation.isLoading} className="w-full md:w-auto px-12 h-14 bg-gray-900 text-white font-black text-xs uppercase tracking-[0.2em] rounded-2xl hover:bg-black shadow-xl transition-all flex items-center justify-center gap-3 active:scale-95 disabled:opacity-50">
+                                    {feedbackMutation.isLoading ? <Loader2 className="w-5 h-5 animate-spin" /> : <>Submit Review <Send className="w-4 h-4 text-primary" /></>}
+                                </button>
+                            </form>
+                        </div>
+
+                        {/* Reviews List */}
+                        <div className="space-y-6">
+                            <h3 className="text-xl font-black text-gray-900">Patient Reviews ({totalReviews})</h3>
+                            {loadingInitialReviews ? (
+                                <div className="space-y-4">
+                                    {[1,2,3].map(i => <div key={i} className="h-40 bg-gray-50 rounded-[32px] animate-pulse" />)}
+                                </div>
+                            ) : reviews.length === 0 ? (
+                                <div className="text-center py-16 px-8 bg-gray-50 rounded-[40px] border border-dashed border-gray-200">
+                                    <div className="p-6 bg-white inline-block rounded-[28px] shadow-sm mb-4 text-gray-200"><MessageSquare className="w-12 h-12" /></div>
+                                    <h5 className="text-xl font-black text-gray-900 mb-2">No Reviews Yet</h5>
+                                    <p className="text-gray-500 font-medium">Be the first to share your experience with this medicine.</p>
+                                </div>
+                            ) : (
+                                <div className="space-y-5">
+                                    {reviews.map((fb, idx) => (
+                                        <div key={fb._id} className="bg-white p-8 rounded-[32px] border border-gray-100 shadow-sm hover:shadow-lg transition-all duration-300 animate-in slide-in-from-bottom-4" style={{ animationDelay: `${idx * 60}ms` }}>
+                                            <div className="flex flex-col sm:flex-row justify-between items-start gap-4 mb-5">
+                                                <div className="flex items-center gap-4">
+                                                    <div className="w-12 h-12 bg-primary/5 rounded-2xl flex items-center justify-center font-black text-primary text-lg border border-primary/10">
+                                                        {fb.userName ? fb.userName.charAt(0).toUpperCase() : 'A'}
+                                                    </div>
+                                                    <div>
+                                                        <h5 className="text-base font-black text-gray-900">{fb.userName || 'Anonymous'}</h5>
+                                                        <div className="text-[10px] font-bold text-gray-400 flex items-center gap-1.5 mt-0.5">
+                                                            <Calendar className="w-3 h-3" /> {formatDate(fb.dateSubmitted)}
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                                <div className="flex items-center gap-1 p-2 px-3 bg-gray-50 rounded-xl">
+                                                    {[...Array(5)].map((_, i) => (
+                                                        <Star key={i} className={`w-3.5 h-3.5 ${i < fb.rating ? 'fill-amber-400 text-amber-400' : 'fill-gray-200 text-gray-200'}`} />
+                                                    ))}
+                                                </div>
+                                            </div>
+                                            {fb.message && (
+                                                <p className="text-gray-600 font-medium leading-relaxed text-[15px] pl-16">"{fb.message}"</p>
+                                            )}
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
+                            {reviews.length > 0 && (
+                                <div className="flex flex-col items-center pt-4 gap-3">
+                                    {hasMoreReviews ? (
+                                        <button onClick={handleLoadMoreReviews} disabled={isLoadingMore} className="px-10 py-4 bg-gray-900 text-white font-black text-xs uppercase tracking-[0.2em] rounded-2xl hover:bg-black shadow-xl transition-all flex items-center gap-3 active:scale-95 disabled:opacity-50">
+                                            {isLoadingMore ? <Loader2 className="w-5 h-5 animate-spin" /> : <>Load More Reviews <ChevronDown className="w-4 h-4" /></>}
+                                        </button>
+                                    ) : totalReviews > 3 && (
+                                        <div className="px-8 py-3 bg-gray-50 border border-gray-100 rounded-full text-[10px] font-black text-gray-400 uppercase tracking-[0.2em]">All {totalReviews} reviews loaded</div>
+                                    )}
+                                    {reviewPage > 1 && (
+                                        <button onClick={handleHideReviews} className="px-10 py-3 text-gray-400 hover:text-gray-900 font-bold text-xs uppercase tracking-[0.2em] rounded-2xl hover:bg-gray-50 transition-all flex items-center gap-2 active:scale-95">
+                                            <Minus className="w-4 h-4" /> Hide Reviews
+                                        </button>
+                                    )}
+                                </div>
+                            )}
+                        </div>
                     </div>
                 </div>
             </div>
         </div>
-      </section>
+    </section>
 
       {/* ── REPORT MODAL ── */}
       {showReportModal && (
@@ -585,16 +724,5 @@ const MedicineDetailPage = () => {
     </div>
   );
 };
-
-// Simple Heart icon toggle placeholder
-const Heart = ({ className }) => (
-    <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
-        <path strokeLinecap="round" strokeLinejoin="round" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
-    </svg>
-)
-
-const Loader2 = ({ className }) => (
-    <RefreshCw className={className + " animate-spin"} />
-)
 
 export default MedicineDetailPage;

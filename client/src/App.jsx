@@ -42,7 +42,15 @@ function App() {
     <QueryClientProvider client={queryClient}>
       <CartProvider>
         <Router>
-          <div className="flex flex-col min-h-screen bg-background text-textMain">
+          <div className="flex flex-col min-h-screen bg-background text-textMain pt-8">
+            {/* Announcement Bar */}
+            <div className="fixed top-0 left-0 right-0 z-[70] bg-teal-500 text-white py-1.5 px-4 flex items-center justify-center shadow-md">
+              <p className="text-[10px] md:text-xs font-black uppercase tracking-[0.2em] flex items-center gap-2">
+                <span className="w-2 h-2 rounded-full bg-white animate-pulse" />
+                All medicines are genuine and sourced directly from manufacturers
+              </p>
+            </div>
+            
             <Navbar />
             <main className="flex-grow">
               <Routes>

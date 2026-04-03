@@ -1,14 +1,16 @@
 import express from 'express';
-import { 
-  getMedicines, 
-  getMedicineById, 
-  searchMedicines, 
-  addFeedback, 
-  getMedicineFeedbacks, 
+import {
+  getMedicineFeedbacks,
   getShopRatingStats,
-  getApprovedFeedbacks
+  getApprovedFeedbacks,
+  likeMedicine,
+  unlikeMedicine,
+  getMedicines,
+  getMedicineById,
+  searchMedicines,
+  addFeedback,
+  addReport
 } from '../controllers/medicineController.js';
-import { submitReport } from '../controllers/reportController.js';
 
 const router = express.Router();
 
@@ -19,6 +21,8 @@ router.get('/', getMedicines);
 router.get('/:id', getMedicineById);
 router.get('/:id/feedbacks', getMedicineFeedbacks);
 router.post('/:id/feedbacks', addFeedback);
-router.post('/:id/report', submitReport);
+router.post('/:id/report', addReport);
+router.post('/:id/like', likeMedicine);
+router.post('/:id/unlike', unlikeMedicine);
 
 export default router;

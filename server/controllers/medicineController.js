@@ -1,6 +1,7 @@
 import Medicine from '../models/Medicine.js';
 import AdminActivityLog from '../models/AdminActivityLog.js';
 import Feedback from '../models/Feedback.js';
+import Report from '../models/Report.js';
 
 // @desc    Get all medicines (public) with pagination, filter, search
 // @route   GET /api/medicines
@@ -9,7 +10,7 @@ export const getMedicines = async (req, res) => {
   try {
     const pageSize = Number(req.query.limit) || 12;
     const page = Number(req.query.page) || 1;
-    
+
     // Filtering
     const filter = {};
     if (req.query.category) filter.category = req.query.category;
@@ -68,7 +69,7 @@ export const searchMedicines = async (req, res) => {
     } : {};
 
     const medicines = await Medicine.find(keyword).limit(10);
-    
+
     if (req.query.q && medicines.length > 0) {
       await Medicine.updateMany(
         { _id: { $in: medicines.map(m => m._id) } },
@@ -111,7 +112,7 @@ export const updateMedicine = async (req, res) => {
 
     if (medicine) {
       Object.assign(medicine, req.body);
-      
+
       // Stock updates - tracking restocks
       if (req.body.restockQuantity && Number(req.body.restockQuantity) > 0) {
         medicine.stockQuantity += Number(req.body.restockQuantity);
@@ -186,8 +187,33 @@ export const addFeedback = async (req, res) => {
 
 export const getMedicineFeedbacks = async (req, res) => {
   try {
-    const feedbacks = await Feedback.find({ medicine: req.params.id, approved: true }).sort('-dateSubmitted');
-    res.json(feedbacks);
+    const page = Number(req.query.page) || 1;
+    const limit = Number(req.query.limit) || 3;
+    const skip = (page - 1) * limit;
+
+    const query = { medicine: req.params.id, approved: true };
+    const count = await Feedback.countDocuments(query);
+    
+    // Calculate rating distribution for all approved feedbacks of this medicine
+    const allApprovedFeedbacks = await Feedback.find(query).select('rating');
+    const ratingStats = allApprovedFeedbacks.reduce((acc, fb) => {
+      acc[fb.rating] = (acc[fb.rating] || 0) + 1;
+      return acc;
+    }, { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 });
+
+    const feedbacks = await Feedback.find(query)
+      .sort('-dateSubmitted')
+      .limit(limit)
+      .skip(skip);
+
+    res.json({
+      feedbacks,
+      page,
+      pages: Math.ceil(count / limit),
+      total: count,
+      hasMore: count > skip + feedbacks.length,
+      ratingStats
+    });
   } catch (error) {
     res.status(500).json({ message: 'Server Error', error: error.message });
   }
@@ -198,7 +224,7 @@ export const getShopRatingStats = async (req, res) => {
     const approvedFeedbacks = await Feedback.find({ approved: true })
       .populate('medicine', 'name')
       .sort('-dateSubmitted');
-      
+
     const totalReviews = approvedFeedbacks.length;
 
     let averageRating = 0;
@@ -247,8 +273,74 @@ export const getApprovedFeedbacks = async (req, res) => {
       feedbacks,
       page,
       pages: Math.ceil(count / limit),
-      total: count
+      total: count,
+      hasMore: count > skip + feedbacks.length
     });
+  } catch (error) {
+    res.status(500).json({ message: 'Server Error', error: error.message });
+  }
+};
+
+// @desc    Like a medicine
+// @route   POST /api/medicines/:id/like
+// @access  Public
+export const likeMedicine = async (req, res) => {
+  try {
+    const medicine = await Medicine.findById(req.params.id);
+    if (!medicine) {
+      return res.status(404).json({ message: 'Medicine not found' });
+    }
+
+    medicine.likes = (medicine.likes || 0) + 1;
+    await medicine.save();
+
+    res.json({ likes: medicine.likes });
+  } catch (error) {
+    res.status(500).json({ message: 'Server Error', error: error.message });
+  }
+};
+
+// @desc    Unlike a medicine
+// @route   POST /api/medicines/:id/unlike
+// @access  Public
+export const unlikeMedicine = async (req, res) => {
+  try {
+    const medicine = await Medicine.findById(req.params.id);
+    if (!medicine) {
+      return res.status(404).json({ message: 'Medicine not found' });
+    }
+
+    medicine.likes = Math.max(0, (medicine.likes || 0) - 1);
+    await medicine.save();
+
+    res.json({ likes: medicine.likes });
+  } catch (error) {
+    res.status(500).json({ message: 'Server Error', error: error.message });
+  }
+};
+
+// @desc    Add a product report
+// @route   POST /api/medicines/:id/report
+// @access  Public
+export const addReport = async (req, res) => {
+  const { reason, additionalDetails, reporterName, reporterEmail } = req.body;
+  try {
+    const medicine = await Medicine.findById(req.params.id);
+    if (!medicine) return res.status(404).json({ message: 'Medicine not found' });
+
+    if (!reason) {
+      return res.status(400).json({ message: 'Please select a reason for the report' });
+    }
+
+    const report = await Report.create({
+      medicine: medicine._id,
+      reason,
+      additionalDetails: additionalDetails || '',
+      reporterName: reporterName || '',
+      reporterEmail: reporterEmail || ''
+    });
+
+    res.status(201).json({ message: 'Report submitted successfully', report });
   } catch (error) {
     res.status(500).json({ message: 'Server Error', error: error.message });
   }

@@ -15,7 +15,8 @@ import {
   getReports,
   getFeedbacks,
   updateFeedbackStatus,
-  deleteFeedback
+  deleteFeedback,
+  getMedicines
 } from '../controllers/adminController.js';
 import { 
   createMedicine, 
@@ -70,6 +71,8 @@ router.put('/profile', protectAdmin, (req, res, next) => {
     next();
   });
 }, updateProfile);
+
+router.get('/medicines', protectAdmin, getMedicines);
 router.post('/medicines', protectAdmin, createMedicine);
 router.put('/medicines/:id', protectAdmin, updateMedicine);
 router.delete('/medicines/:id', protectAdmin, deleteMedicine);

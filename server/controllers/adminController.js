@@ -61,10 +61,7 @@ export const updateProfile = async (req, res) => {
     const admin = await Admin.findById(req.admin._id).select('+password');
     if (!admin) return res.status(404).json({ message: 'Admin not found' });
 
-    // Validate email format basic check
-    if (email && !/^\S+@\S+\.\S+$/.test(email)) {
-      return res.status(400).json({ message: 'Invalid email format' });
-    }
+    // Email is no longer updated here directly. It requires the OTP flow via /auth/verify-email-change.
 
     // Checking current password if they try to update password
     if (newPassword) {
@@ -79,7 +76,6 @@ export const updateProfile = async (req, res) => {
     }
 
     if (name) admin.name = name;
-    if (email) admin.email = email;
     if (newUsername) admin.username = newUsername;
     
     // Construct local path URL if file uploaded
@@ -203,6 +199,7 @@ export const getReports = async (req, res) => {
 
     const mostSearched = await Medicine.find().sort({ searchCount: -1 }).limit(10);
     const mostViewed = await Medicine.find().sort({ viewCount: -1 }).limit(10);
+    const mostLiked = await Medicine.find().sort({ likes: -1 }).limit(10);
 
     const expiredOrNearExpiry = await Medicine.find({
       expiryDate: { $lte: ninetyDaysFromNow }
@@ -224,6 +221,7 @@ export const getReports = async (req, res) => {
       lowStock: lowStockMedicines,
       mostSearched,
       mostViewed,
+      mostLiked,
       expiredOrNearExpiry
     });
   } catch (error) {
@@ -373,6 +371,41 @@ export const getDashboardGraphs = async (req, res) => {
     });
   } catch (error) {
     console.error('getDashboardGraphs error:', error);
+    res.status(500).json({ message: 'Server Error', error: error.message });
+  }
+};
+
+// @desc    Get all medicines for admin with search/filter/pagination
+// @route   GET /api/admin/medicines
+// @access  Private (Admin)
+export const getMedicines = async (req, res) => {
+  try {
+    const pageSize = Number(req.query.limit) || 20;
+    const page = Number(req.query.page) || 1;
+
+    const keyword = req.query.q ? {
+      $or: [
+        { name: { $regex: req.query.q, $options: 'i' } },
+        { genericName: { $regex: req.query.q, $options: 'i' } },
+        { manufacturer: { $regex: req.query.q, $options: 'i' } },
+        { batchNumber: { $regex: req.query.q, $options: 'i' } }
+      ]
+    } : {};
+
+    const filter = { ...keyword };
+    if (req.query.category && req.query.category !== 'All') {
+      filter.category = req.query.category;
+    }
+
+    const count = await Medicine.countDocuments(filter);
+    const medicines = await Medicine.find(filter)
+      .populate('supplier', 'name')
+      .sort('-createdAt')
+      .limit(pageSize)
+      .skip(pageSize * (page - 1));
+
+    res.json(medicines); // Frontend expects an array based on current implementation
+  } catch (error) {
     res.status(500).json({ message: 'Server Error', error: error.message });
   }
 };
