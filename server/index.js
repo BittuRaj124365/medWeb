@@ -29,7 +29,7 @@ app.use(helmet({ crossOriginResourcePolicy: false }));
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
 // Rate Limiting
-const apiLimiter = rateLimit({ windowMs: 15 * 60 * 1000, max: 100, standardHeaders: true, legacyHeaders: false });
+const apiLimiter = rateLimit({ windowMs: 15 * 60 * 1000, max: 1000, standardHeaders: true, legacyHeaders: false });
 app.use('/api/', apiLimiter);
 
 // Routes
